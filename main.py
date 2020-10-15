@@ -1,6 +1,8 @@
+from functools import lru_cache
 import re
 
 import requests
+import requests_html
 import yaml
 
 with open("creds.yaml") as f:
@@ -21,18 +23,62 @@ params = {
     "target_time": 330,
     "depth": "complete",
 }
+stryd_session = requests.Session()
+tao_session = requests_html.HTMLSession()
+tao_user_id = ""
 
 
-def stryd_login(session: requests.Session, email: str, password: str) -> None:
-    r = session.post("https://www.stryd.com/b/email/signin",
-               json={"email": email, "password": password})
+def stryd_login(session: requests.Session) -> None:
+    r = session.post(
+        "https://www.stryd.com/b/email/signin",
+        json={"email": creds["stryd_email"], "password": creds["stryd_password"]},
+    )
     login_info = r.json()
     session.headers.update({"Authorization": f"Bearer: {login_info['token']}"})
 
 
-def get_power_from_time(session: requests.Session, seconds: int) -> int:
-    r = session.get(prediction_url, params={"target_time": seconds, **params})
+def tao_login(session: requests.Session) -> None:
+    r = session.post(
+        "https://beta.trainasone.com/login",
+        data={"email": creds["trainasone_email"], "password": creds["trainasone_password"]},
+    )
+
+
+def get_tao_workout():
+    r = tao_session.get("https://beta.trainasone.com/home", allow_redirects=False)
+    if r.status_code == 302:
+        tao_login(tao_session)
+        r = tao_session.get("https://beta.trainasone.com/home")
+    workout_url = "https://beta.trainasone.com" + r.html.find(".planned-workout-data", first=True).attrs["data-href"]
+    #workout_url = "https://beta.trainasone.com/plannedWorkout?targetUserId=016e89c82ff200004aa88d95b508101c&workoutId=017529245aae00014aa88d95b5080ab6"
+    workout = tao_session.get(workout_url)
+    steps = workout.html.find(".workoutSteps", first=True)
+    convert_steps(steps)
+
+
+def convert_steps(steps):
+    for step in steps.find('li'):
+        if step.find('ol'):
+            convert_steps(step.find('ol', first=True))
+        else:
+            range = parse_tao_step(step.text)
+            print(step.text)
+            print(convert_time_range_to_power(range))
+
+
+@lru_cache()
+def get_power_from_time(seconds: int) -> int:
+    if seconds <= 0:
+        return 0
+    r = stryd_session.get(prediction_url, params={**params, "target_time": seconds})
+    if r.status_code == 401:
+        stryd_login(stryd_session)
+        r = stryd_session.get(prediction_url, params={**params, "target_time": seconds})
     return round(r.json()["power_range"]["target"])
+
+
+def convert_time_range_to_power(range):
+    return get_power_from_time(range[0]), get_power_from_time(range[1])
 
 
 def parse_time(time_string: str) -> int:
@@ -42,29 +88,32 @@ def parse_time(time_string: str) -> int:
 
 def parse_tao_range(range_string: str) -> tuple:
     range_string = range_string.strip(" /mi")
-    max, min = range_string.split("-")
+    min, max = range_string.split("-")
     if range_string.startswith(">"):
-        max = parse_time(min)
-        min = 0
+        max = parse_time(max)
+        min = -1
     else:
         min, max = parse_time(min), parse_time(max)
     return min, max
 
 
 def parse_tao_step(step_text: str):
-    #r = re.search(r"\[(.*)\]", step_text)
+    # r = re.search(r"\[(.*)\]", step_text)
+    step_text = step_text.replace("\xa0", " ")
     return parse_tao_range(re.search(r"\[(.*)\]", step_text).group(1))
 
 
 # Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print(parse_tao_step("Walk/slow run for 5 minutes at 08:18 /mi [16:36 - 08:03 /mi] 131 bpm (120 to 135), (0.6 mi)."))
-    print(parse_tao_range("05:29 - 05:14 /mi"))
-    print(parse_tao_range(">- 07:34 /mi"))
+if __name__ == "__main__":
+    #print(get_power_from_time(478))
+    #print(get_power_from_time(984))
+    #exit()
+    print(get_tao_workout())
+    #print(parse_tao_range("05:29 - 05:14 /mi"))
+    #print(parse_tao_range(">- 07:34 /mi"))
     exit()
     s = requests.Session()
-    stryd_login(s, creds["stryd_email"], creds["stryd_password"])
-    print(get_power_from_time(s, 5*60+30))
+    print(get_power_from_time(s, 5 * 60 + 30))
 
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
