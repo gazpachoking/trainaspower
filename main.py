@@ -5,6 +5,8 @@ import requests
 import requests_html
 import yaml
 
+import workout
+
 with open("creds.yaml") as f:
     creds = yaml.safe_load(f)
 
@@ -50,20 +52,26 @@ def get_tao_workout():
         tao_login(tao_session)
         r = tao_session.get("https://beta.trainasone.com/home")
     workout_url = "https://beta.trainasone.com" + r.html.find(".planned-workout-data", first=True).attrs["data-href"]
-    #workout_url = "https://beta.trainasone.com/plannedWorkout?targetUserId=016e89c82ff200004aa88d95b508101c&workoutId=017529245aae00014aa88d95b5080ab6"
-    workout = tao_session.get(workout_url)
-    steps = workout.html.find(".workoutSteps", first=True)
-    convert_steps(steps)
+    workout_url = "https://beta.trainasone.com/plannedWorkout?targetUserId=016e89c82ff200004aa88d95b508101c&workoutId=017529245aae00014aa88d95b5080ab6"
+    workout_html = tao_session.get(workout_url)
+    steps = workout_html.html.find(".workoutSteps", first=True)
+    w = workout.Workout()
+    w.steps = list(convert_steps(steps))
+    return w
 
 
 def convert_steps(steps):
     for step in steps.find('li'):
         if step.find('ol'):
-            convert_steps(step.find('ol', first=True))
+            times = int(re.search(r" (\d+) times", step.text).group(1))
+            out_step = workout.RepeatStep(times)
+            out_step.steps = list(convert_steps(step.find('ol', first=True)))
         else:
-            range = parse_tao_step(step.text)
-            print(step.text)
-            print(convert_time_range_to_power(range))
+            out_step = workout.ConcreteStep()
+            out_step.description = step.text
+            out_step.pace_range = workout.Range(*parse_tao_step(step.text))
+            out_step.power_range = workout.Range(*convert_time_range_to_power(out_step.pace_range))
+        yield out_step
 
 
 @lru_cache()
@@ -108,7 +116,8 @@ if __name__ == "__main__":
     #print(get_power_from_time(478))
     #print(get_power_from_time(984))
     #exit()
-    print(get_tao_workout())
+    a = get_tao_workout()
+    print(a)
     #print(parse_tao_range("05:29 - 05:14 /mi"))
     #print(parse_tao_range(">- 07:34 /mi"))
     exit()
