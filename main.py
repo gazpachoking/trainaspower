@@ -1,9 +1,15 @@
+from datetime import timedelta
 from functools import lru_cache
 import re
+import json
 
+import dateparser
 import requests
 import requests_html
 import yaml
+
+import workout
+import finalsurge
 
 with open("creds.yaml") as f:
     creds = yaml.safe_load(f)
@@ -25,6 +31,7 @@ params = {
 }
 stryd_session = requests.Session()
 tao_session = requests_html.HTMLSession()
+finalsurge_session = requests.Session()
 tao_user_id = ""
 
 
@@ -40,30 +47,136 @@ def stryd_login(session: requests.Session) -> None:
 def tao_login(session: requests.Session) -> None:
     r = session.post(
         "https://beta.trainasone.com/login",
-        data={"email": creds["trainasone_email"], "password": creds["trainasone_password"]},
+        data={
+            "email": creds["trainasone_email"],
+            "password": creds["trainasone_password"],
+        },
     )
 
 
-def get_tao_workout():
+token = ""
+
+
+def finalsurge_login(session: requests.Session) -> None:
+    login_params = {
+        "email": creds["finalsurge_email"],
+        "password": creds["finalsurge_password"],
+        "deviceManufacturer": "",
+        "deviceModel": "Netscape",
+        "deviceOperatingSystem": "Win32",
+        "deviceUniqueIdentifier": "",
+    }
+    r = session.post(
+        "https://beta.finalsurge.com/api/Data?request=login",
+        data=json.dumps(login_params).replace(" ", ""),
+    )
+    login_info = r.json()
+    session.headers.update({"Authorization": f"Bearer {login_info['data']['token']}"})
+
+
+def check_finalsurge_workout_exists(workout):
+    params = {
+        "request": "WorkoutList",
+        "scope": "USER",
+        "scopekey": "123a8bc7-3911-4960-9b79-dfaa163c69b2",
+        "startdate": workout.date.strftime("%Y-%m-%d"),
+        "enddate": workout.date.strftime("%Y-%m-%d"),
+        "ishistory": False,
+        "completedonly": False,
+    }
+    data = finalsurge_session.get(
+        "https://beta.finalsurge.com/api/Data", params=params
+    ).json()
+    if any(workout.id in w["name"] for w in data["data"]):
+        return True
+    return False
+
+
+def add_finalsurge_workout(workout):
+    finalsurge_login(finalsurge_session)
+    if check_finalsurge_workout_exists(workout):
+        return
+    wo = finalsurge.convert_workout(workout)
+    params = {
+        "request": "WorkoutSave",
+        "scope": "USER",
+        "scope_key": "123a8bc7-3911-4960-9b79-dfaa163c69b2",
+    }
+
+    add_wo = finalsurge_session.post(
+        "https://beta.finalsurge.com/api/Data",
+        params=params,
+        json={
+            "key": None,
+            "workout_date": workout.date.isoformat(),
+            "order": 1,
+            "name": workout.name,
+            "description": "",
+            "is_race": False,
+            "Activity": {
+                "activity_type_key": "00000001-0001-0001-0001-000000000001",
+                "activity_type_name": "Run",
+            },
+        },
+    )
+    wo_key = add_wo.json()["new_workout_key"]
+    params = {
+        "request": "WorkoutBuilderSave",
+        "scope": "USER",
+        "scopekey": "123a8bc7-3911-4960-9b79-dfaa163c69b2",
+        "workout_key": wo_key,
+    }
+    finalsurge_session.post(
+        "https://beta.finalsurge.com/api/Data", params=params, json=wo
+    )
+
+
+def get_next_tao_workout():
     r = tao_session.get("https://beta.trainasone.com/home", allow_redirects=False)
     if r.status_code == 302:
         tao_login(tao_session)
-        r = tao_session.get("https://beta.trainasone.com/home")
-    workout_url = "https://beta.trainasone.com" + r.html.find(".planned-workout-data", first=True).attrs["data-href"]
-    #workout_url = "https://beta.trainasone.com/plannedWorkout?targetUserId=016e89c82ff200004aa88d95b508101c&workoutId=017529245aae00014aa88d95b5080ab6"
-    workout = tao_session.get(workout_url)
-    steps = workout.html.find(".workoutSteps", first=True)
-    convert_steps(steps)
+        r = tao_session.get("https://beta.trainasone.com/calendarView")
+    upcoming = r.html.find(".today, .future")
+    for day in upcoming:
+        if day.find(".summary>b>a"):
+            break
+    else:
+        return None
+    date = dateparser.parse(day.find(".title", first=True).text)
+    workout_url = day.find(".summary>b>a", first=True).absolute_links.pop()
+    # workout_url = "https://beta.trainasone.com/plannedWorkout?targetUserId=016e89c82ff200004aa88d95b508101c&workoutId=017529245aae00014aa88d95b5080ab6"
+    workout_html = tao_session.get(workout_url).html
+    steps = workout_html.find(".workoutSteps>ol>li")
+    w = workout.Workout()
+    w.date = date
+    name = workout_html.find(".summary span", first=True).text
+    number = workout_html.find(".summary sup", first=True).text
+    w.id = number
+    w.name = f"{number} {name}"
+    w.steps = list(convert_steps(steps))
+    w.steps[0].type = "WARMUP"
+    return w
 
 
 def convert_steps(steps):
-    for step in steps.find('li'):
-        if step.find('ol'):
-            convert_steps(step.find('ol', first=True))
+    for i, step in enumerate(steps):
+        if step.find("ol"):
+            times = int(re.search(r" (\d+) times", step.text).group(1))
+            out_step = workout.RepeatStep(times)
+            out_step.steps = list(convert_steps(step.find("ol>li")))
+            out_step.steps[0].type = "REST"
+            out_step.steps[1].type = "ACTIVE"
         else:
-            range = parse_tao_step(step.text)
-            print(step.text)
-            print(convert_time_range_to_power(range))
+            out_step = workout.ConcreteStep()
+            out_step.description = step.text
+            out_step.pace_range = workout.Range(*parse_tao_range(step.text))
+            out_step.power_range = workout.Range(
+                *convert_time_range_to_power(out_step.pace_range)
+            )
+            out_step.length = parse_tao_length(step.text)
+            out_step.type = "ACTIVE"
+
+        yield out_step
 
 
 @lru_cache()
@@ -86,7 +199,8 @@ def parse_time(time_string: str) -> int:
     return min * 60 + sec
 
 
-def parse_tao_range(range_string: str) -> tuple:
+def parse_tao_range(step_string: str) -> tuple:
+    range_string = re.search(r"\[(.*)\]", step_string).group(1)
     range_string = range_string.strip(" /mi")
     min, max = range_string.split("-")
     if range_string.startswith(">"):
@@ -97,23 +211,24 @@ def parse_tao_range(range_string: str) -> tuple:
     return min, max
 
 
-def parse_tao_step(step_text: str):
-    # r = re.search(r"\[(.*)\]", step_text)
-    step_text = step_text.replace("\xa0", " ")
-    return parse_tao_range(re.search(r"\[(.*)\]", step_text).group(1))
+def parse_tao_length(step_string: str):
+    match = re.search(
+        r"for ((?P<hours>\d+) hours?)?[, ]*((?P<minutes>\d+) minutes?)?[, ]*((?P<seconds>\d+) seconds?)?",
+        step_string,
+    )
+    if not match:
+        # This is a 3.2km assesment. e.g. "Run in as QUICK a time as you can (2.0 mi)."
+        match = re.search(r"\(([\d.]+) mi\).$", step_string)
+        distance = float(match.group(1))
+        return distance
+    parts = match.groupdict()
+    time_params = {}
+    for (name, param) in parts.items():
+        if param:
+            time_params[name] = int(param)
+    return timedelta(**time_params)
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == "__main__":
-    #print(get_power_from_time(478))
-    #print(get_power_from_time(984))
-    #exit()
-    print(get_tao_workout())
-    #print(parse_tao_range("05:29 - 05:14 /mi"))
-    #print(parse_tao_range(">- 07:34 /mi"))
-    exit()
-    s = requests.Session()
-    print(get_power_from_time(s, 5 * 60 + 30))
-
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    wo = get_next_tao_workout()
+    add_finalsurge_workout(wo)
