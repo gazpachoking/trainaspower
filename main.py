@@ -5,13 +5,17 @@ import stryd
 import trainasone
 
 
-with open("creds.yaml") as f:
-    creds = yaml.safe_load(f)
+with open("config.yaml") as f:
+    config = yaml.safe_load(f)
+
+
+def main():
+    trainasone.login(config["trainasone_email"], config["trainasone_password"])
+    finalsurge.login(config["finalsurge_email"], config["finalsurge_password"])
+    stryd.login(config["stryd_email"], config["stryd_password"])
+    wo = trainasone.get_next_workout()
+    finalsurge.add_workout(wo)
 
 
 if __name__ == "__main__":
-    trainasone.login(creds["trainasone_email"], creds["trainasone_password"])
-    finalsurge.login(creds["finalsurge_email"], creds["finalsurge_password"])
-    stryd.login(creds["stryd_email"], creds["stryd_password"])
-    wo = trainasone.get_next_workout()
-    finalsurge.add_workout(wo)
+    main()
