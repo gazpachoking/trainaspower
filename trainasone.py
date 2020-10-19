@@ -12,11 +12,7 @@ tao_session = requests_html.HTMLSession()
 
 def login(email, password) -> None:
     tao_session.post(
-        "https://beta.trainasone.com/login",
-        data={
-            "email": email,
-            "password": password,
-        },
+        "https://beta.trainasone.com/login", data={"email": email, "password": password}
     )
 
 
@@ -60,7 +56,9 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
             out_step.pace_range = models.PaceRange(*parse_pace_range(step.text))
             power_range = convert_pace_range_to_power(out_step.pace_range)
             if "pace-EASY" in step.attrs["class"]:
-                power_range = models.PowerRange(power_range.min - 1.5, power_range.max + 1.5)
+                power_range = models.PowerRange(
+                    power_range.min - 1.5, power_range.max + 1.5
+                )
             out_step.power_range = models.PowerRange(
                 round(power_range.min), round(power_range.max)
             )
@@ -94,7 +92,7 @@ def parse_distance(text: str) -> float:
 
 def parse_duration(step_string: str) -> timedelta:
     match = re.search(
-        r"((?P<hours>\d+) hours?)?[, ]*((?P<minutes>\d+) minutes?)?[, ]*((?P<seconds>\d+) seconds?)?",
+        r"(?=\d+ (hour|minute|second))((?P<hours>\d+) hours?)?[, ]*((?P<minutes>\d+) minutes?)?[, ]*((?P<seconds>\d+) seconds?)?",
         step_string,
     )
     if not match:
