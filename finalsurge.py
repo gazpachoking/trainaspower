@@ -1,5 +1,30 @@
+import json
 from datetime import timedelta
 from itertools import count
+
+import requests
+
+
+finalsurge_session = requests.Session()
+
+
+def login(email, password) -> None:
+    login_params = {
+        "email": email,
+        "password": password,
+        "deviceManufacturer": "",
+        "deviceModel": "Netscape",
+        "deviceOperatingSystem": "Win32",
+        "deviceUniqueIdentifier": "",
+    }
+    r = finalsurge_session.post(
+        "https://beta.finalsurge.com/api/Data?request=login",
+        data=json.dumps(login_params).replace(" ", ""),
+    )
+    login_info = r.json()
+    finalsurge_session.headers.update(
+        {"Authorization": f"Bearer {login_info['data']['token']}"}
+    )
 
 
 def convert_workout(workout):
@@ -66,3 +91,62 @@ def convert_repeat(step, id_counter):
         "durationType": "OPEN",
         "comments": None,
     }
+
+
+def check_workout_exists(workout):
+    params = {
+        "request": "WorkoutList",
+        "scope": "USER",
+        "scopekey": "123a8bc7-3911-4960-9b79-dfaa163c69b2",
+        "startdate": workout.date.strftime("%Y-%m-%d"),
+        "enddate": workout.date.strftime("%Y-%m-%d"),
+        "ishistory": False,
+        "completedonly": False,
+    }
+    data = finalsurge_session.get(
+        "https://beta.finalsurge.com/api/Data", params=params
+    ).json()
+    if any(workout.id in w["name"] for w in data["data"]):
+        return True
+    return False
+
+
+def add_workout(workout):
+    if check_workout_exists(workout):
+        return
+    wo = convert_workout(workout)
+    params = {
+        "request": "WorkoutSave",
+        "scope": "USER",
+        "scope_key": "123a8bc7-3911-4960-9b79-dfaa163c69b2",
+    }
+
+    add_wo = finalsurge_session.post(
+        "https://beta.finalsurge.com/api/Data",
+        params=params,
+        json={
+            "key": None,
+            "workout_date": workout.date.isoformat(),
+            "order": 1,
+            "name": workout.name,
+            "description": "",
+            "is_race": False,
+            "Activity": {
+                "activity_type_key": "00000001-0001-0001-0001-000000000001",
+                "activity_type_name": "Run",
+                "planned_amount": workout.distance,
+                "planned_amount_type": "mi",
+                "planned_duration": workout.duration.total_seconds(),
+            },
+        },
+    )
+    wo_key = add_wo.json()["new_workout_key"]
+    params = {
+        "request": "WorkoutBuilderSave",
+        "scope": "USER",
+        "scopekey": "123a8bc7-3911-4960-9b79-dfaa163c69b2",
+        "workout_key": wo_key,
+    }
+    finalsurge_session.post(
+        "https://beta.finalsurge.com/api/Data", params=params, json=wo
+    )
