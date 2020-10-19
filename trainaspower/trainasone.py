@@ -3,9 +3,11 @@ from datetime import timedelta
 from typing import Generator
 
 import dateparser
-import models
 import requests_html
-from stryd import convert_pace_range_to_power
+
+from . import models
+
+from .stryd import convert_pace_range_to_power
 
 tao_session = requests_html.HTMLSession()
 

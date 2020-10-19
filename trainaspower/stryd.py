@@ -1,7 +1,8 @@
 from functools import lru_cache
 
-import models
 import requests
+
+from . import models
 
 stryd_session = requests.Session()
 

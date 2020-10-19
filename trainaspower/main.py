@@ -1,11 +1,12 @@
+from pathlib import Path
 import yaml
 
-import finalsurge
-import stryd
-import trainasone
+import trainaspower
+from trainaspower import finalsurge, stryd, trainasone
 
 
-with open("config.yaml") as f:
+directory = Path(trainaspower.__file__).parent.parent
+with open(directory/"config.yaml") as f:
     config = yaml.safe_load(f)
 
 
