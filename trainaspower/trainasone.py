@@ -7,7 +7,11 @@ import requests_html
 
 from . import models
 
-from .stryd import convert_pace_range_to_power, suggested_power_range_for_distance, suggested_power_range_for_time
+from .stryd import (
+    convert_pace_range_to_power,
+    suggested_power_range_for_distance,
+    suggested_power_range_for_time,
+)
 
 tao_session = requests_html.HTMLSession()
 
@@ -28,10 +32,6 @@ def get_next_workout() -> models.Workout:
         raise Exception("Next tao workout not found.")
     date = dateparser.parse(day.find(".title", first=True).text)
     workout_url = day.find(".summary>b>a", first=True).absolute_links.pop()
-    # 6 min
-    #workout_url = "https://beta.trainasone.com/plannedWorkout?targetUserId=016e89c82ff200004aa88d95b508101c&workoutId=017543a5980d00004aa88d95b50894b6"
-    # 3.2k
-    #workout_url = "https://beta.trainasone.com/plannedWorkout?targetUserId=016e89c82ff200004aa88d95b508101c&workoutId=0174f4e2df5d00004aa88d95b50877e2"
     workout_html = tao_session.get(workout_url).html
     steps = workout_html.find(".workoutSteps>ol>li")
     w = models.Workout()
@@ -75,7 +75,9 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
                     # Just hard coding this for now
                     out_step.power_range = models.PowerRange(0, 280)
                 elif "pace-EXTREME" in step.attrs["class"]:
-                    out_step.power_range = suggested_power_range_for_time(out_step.length)
+                    out_step.power_range = suggested_power_range_for_time(
+                        out_step.length
+                    )
             else:
                 out_step.power_range = convert_pace_range_to_power(out_step.pace_range)
 
@@ -84,7 +86,10 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
                 out_step.power_range = models.PowerRange(
                     out_step.power_range.min - 1.5, out_step.power_range.max + 1.5
                 )
-            elif "pace-VERY_EASY" in step.attrs["class"] or "pace-RECOVERY" in step.attrs["class"]:
+            elif (
+                "pace-VERY_EASY" in step.attrs["class"]
+                or "pace-RECOVERY" in step.attrs["class"]
+            ):
                 out_step.type = "REST"
 
         yield out_step

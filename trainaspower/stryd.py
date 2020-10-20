@@ -1,9 +1,9 @@
-from datetime import timedelta
+from datetime import timedelta, date
 from functools import lru_cache
 
 import requests
 
-from . import models
+from trainaspower import models
 
 stryd_session = requests.Session()
 
@@ -48,10 +48,22 @@ def convert_pace_range_to_power(pace_range: models.PaceRange) -> models.PowerRan
 
 
 def suggested_power_range_for_distance(distance: float) -> models.PowerRange:
-    r = stryd_session.get(prediction_url, params={**params, "race_distance": 1609.34*distance})
+    r = stryd_session.get(
+        prediction_url, params={**params, "race_distance": 1609.34 * distance}
+    )
     suggested_range = r.json()["power_range_suggested"]
     return models.PowerRange(suggested_range["min"], suggested_range["max"])
 
 
 def suggested_power_range_for_time(time: timedelta) -> models.PowerRange:
-    raise NotImplementedError
+    today = date.today()
+    url = "https://www.stryd.com/b/api/v1/users/powerdurationcurve?datarange=07.22.2020-10.20.2020&detraining=0"
+    params = {
+        "detraining": 0,
+        "daterange": f"{today-timedelta(days=90):%m.%d.%Y}-{today:%m.%d.%Y}",
+    }
+    power = stryd_session.get(url, params=params).json()[0]["power_list"][
+        int(time.total_seconds() - 1)
+    ]
+    # Is 8 watts either side good?
+    return models.PowerRange(power - 8, power + 8)
