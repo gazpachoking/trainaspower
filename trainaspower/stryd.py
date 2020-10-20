@@ -1,3 +1,4 @@
+from datetime import timedelta
 from functools import lru_cache
 
 import requests
@@ -37,13 +38,20 @@ def get_power_from_time(seconds: int) -> float:
     if seconds <= 0:
         return 0
     r = stryd_session.get(prediction_url, params={**params, "target_time": seconds})
-    if r.status_code == 401:
-        login()
-        r = stryd_session.get(prediction_url, params={**params, "target_time": seconds})
     return r.json()["power_range"]["target"]
 
 
-def convert_pace_range_to_power(pace_range: models.PaceRange):
+def convert_pace_range_to_power(pace_range: models.PaceRange) -> models.PowerRange:
     return models.PowerRange(
         get_power_from_time(pace_range.min), get_power_from_time(pace_range.max)
     )
+
+
+def suggested_power_range_for_distance(distance: float) -> models.PowerRange:
+    r = stryd_session.get(prediction_url, params={**params, "race_distance": 1609.34*distance})
+    suggested_range = r.json()["power_range_suggested"]
+    return models.PowerRange(suggested_range["min"], suggested_range["max"])
+
+
+def suggested_power_range_for_time(time: timedelta) -> models.PowerRange:
+    raise NotImplementedError

@@ -59,8 +59,8 @@ def convert_step(step, id_counter):
             {
                 "targetType": "power",
                 "zoneBased": False,
-                "targetLow": step.power_range.min,
-                "targetHigh": step.power_range.max,
+                "targetLow": round(step.power_range.min),
+                "targetHigh": round(step.power_range.max),
                 "targetOption": None,
                 "targetIsTimeBased": False,
                 "zone": 0,

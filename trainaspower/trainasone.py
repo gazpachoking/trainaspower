@@ -7,7 +7,7 @@ import requests_html
 
 from . import models
 
-from .stryd import convert_pace_range_to_power
+from .stryd import convert_pace_range_to_power, suggested_power_range_for_distance, suggested_power_range_for_time
 
 tao_session = requests_html.HTMLSession()
 
@@ -28,7 +28,10 @@ def get_next_workout() -> models.Workout:
         raise Exception("Next tao workout not found.")
     date = dateparser.parse(day.find(".title", first=True).text)
     workout_url = day.find(".summary>b>a", first=True).absolute_links.pop()
-    # workout_url = "https://beta.trainasone.com/plannedWorkout?targetUserId=016e89c82ff200004aa88d95b508101c&workoutId=017529245aae00014aa88d95b5080ab6"
+    # 6 min
+    #workout_url = "https://beta.trainasone.com/plannedWorkout?targetUserId=016e89c82ff200004aa88d95b508101c&workoutId=017543a5980d00004aa88d95b50894b6"
+    # 3.2k
+    #workout_url = "https://beta.trainasone.com/plannedWorkout?targetUserId=016e89c82ff200004aa88d95b508101c&workoutId=0174f4e2df5d00004aa88d95b50877e2"
     workout_html = tao_session.get(workout_url).html
     steps = workout_html.find(".workoutSteps>ol>li")
     w = models.Workout()
@@ -50,22 +53,39 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
             times = int(re.search(r" (\d+) times", step.text).group(1))
             out_step = models.RepeatStep(times)
             out_step.steps = list(convert_steps(step.find("ol>li")))
-            out_step.steps[0].type = "REST"
-            out_step.steps[1].type = "ACTIVE"
         else:
             out_step = models.ConcreteStep()
             out_step.description = step.text
-            out_step.pace_range = models.PaceRange(*parse_pace_range(step.text))
-            power_range = convert_pace_range_to_power(out_step.pace_range)
-            if "pace-EASY" in step.attrs["class"]:
-                power_range = models.PowerRange(
-                    power_range.min - 1.5, power_range.max + 1.5
-                )
-            out_step.power_range = models.PowerRange(
-                round(power_range.min), round(power_range.max)
-            )
-            out_step.length = parse_duration(step.text)
             out_step.type = "ACTIVE"
+            try:
+                out_step.length = parse_duration(step.text)
+            except ValueError:
+                # 3.2km assessments are the only steps that do not have a duration
+                distance = parse_distance(step.text)
+                out_step.power_range = suggested_power_range_for_distance(distance)
+                out_step.length = distance
+                yield out_step
+                continue
+
+            try:
+                out_step.pace_range = parse_pace_range(step.text)
+            except ValueError:
+                # 6 minute assesments and RECOVERY segments do not have a pace
+                if "pace-RECOVERY" in step.attrs["class"]:
+                    # Just hard coding this for now
+                    out_step.power_range = models.PowerRange(0, 280)
+                elif "pace-EXTREME" in step.attrs["class"]:
+                    out_step.power_range = suggested_power_range_for_time(out_step.length)
+            else:
+                out_step.power_range = convert_pace_range_to_power(out_step.pace_range)
+
+            if "pace-EASY" in step.attrs["class"]:
+                # Widen the range for 'easy' pace, don't need so much beeping in my ears
+                out_step.power_range = models.PowerRange(
+                    out_step.power_range.min - 1.5, out_step.power_range.max + 1.5
+                )
+            elif "pace-VERY_EASY" in step.attrs["class"] or "pace-RECOVERY" in step.attrs["class"]:
+                out_step.type = "REST"
 
         yield out_step
 
@@ -76,8 +96,10 @@ def parse_pace(pace_string: str) -> int:
 
 
 def parse_pace_range(step_string: str) -> models.PaceRange:
-    range_string = re.search(r"\[(.*)\]", step_string).group(1)
-    range_string = range_string.strip(" /mi")
+    range_match = re.search(r"\[(.*)\]", step_string)
+    if not range_match:
+        raise ValueError(f"Could not find pace range in `{step_string}`")
+    range_string = range_match.group(1).strip(" /mi")
     min, max = range_string.split("-")
     if range_string.startswith(">"):
         max = parse_pace(max)
@@ -89,6 +111,8 @@ def parse_pace_range(step_string: str) -> models.PaceRange:
 
 def parse_distance(text: str) -> float:
     match = re.search(r"\(~?([\d.]+) mi\)", text)
+    if not match:
+        raise ValueError(f"No distance found in `{text}`")
     return float(match.group(1))
 
 
