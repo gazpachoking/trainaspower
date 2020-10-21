@@ -65,5 +65,5 @@ def suggested_power_range_for_time(time: timedelta) -> models.PowerRange:
     power = stryd_session.get(url, params=params).json()[0]["power_list"][
         int(time.total_seconds() - 1)
     ]
-    # Is 8 watts either side good?
-    return models.PowerRange(power - 8, power + 8)
+    # What should the range be?
+    return models.PowerRange(power - 5, power + 10)
