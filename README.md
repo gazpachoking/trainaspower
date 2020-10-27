@@ -3,13 +3,10 @@
 Automatically converts [TrainAsOne](https://www.trainasone.com) training plans to use power, and uploads them to [Final 
 Surge](https://finalsurge.com) (Which [Stryd](https://stryd.com) can use in its workout app.)
 
-From this:
+From this, to this:
 
-![TrainAsOne Workout](https://gazpachoking.github.io/trainaspower/taoworkout.png)
-
-To this!
-
-![Stryd Workout](https://gazpachoking.github.io/trainaspower/strydworkout.png)
+<img src="https://gazpachoking.github.io/trainaspower/taoworkout.png" height="450" alt="TrainAsOne Workout">
+<img src="https://gazpachoking.github.io/trainaspower/strydworkout.png" height="450" alt="Stryd Workout">
 
 ## Installation
 1. Install [Poetry](https://python-poetry.org/docs/#installation)
