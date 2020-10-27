@@ -23,3 +23,6 @@ Run `poetry run trainaspower` from the checkout directory.
 ### Crontab
 If you want to set it up in crontab, you have to get the path to the executable.
 Run `echo $(poetry env info --path)/bin/trainaspower` to get the full path, which you can then enter into crontab.
+
+Each execution will add the next workout to be completed, so it needs to be scheduled once a day, at a time
+after you will have finished your workout for the day.
