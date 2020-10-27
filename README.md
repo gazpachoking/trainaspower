@@ -5,11 +5,11 @@ Surge](https://finalsurge.com) (Which [Stryd](https://stryd.com) can use in its 
 
 From this:
 
-![TrainAsOne Workout](https://gazpachoking.github.io/trainaspower/taodworkout.png)
+![TrainAsOne Workout](https://gazpachoking.github.io/trainaspower/taoworkout.png)
 
 To this!
 
-![Stryd Workout](https://gazpachoking.github.io/trainaspower/stryddworkout.png)
+![Stryd Workout](https://gazpachoking.github.io/trainaspower/strydworkout.png)
 
 ## Installation
 1. Install [Poetry](https://python-poetry.org/docs/#installation)
