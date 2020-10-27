@@ -3,7 +3,7 @@
 Automatically converts [TrainAsOne](https://www.trainasone.com) training plans to use power, and uploads them to [Final 
 Surge](https://finalsurge.com) (Which [Stryd](https://stryd.com) can use in its workout app.)
 
-From this, to this:
+__From this, to this:__
 
 <p float="left">
     <img src="https://gazpachoking.github.io/trainaspower/taoworkout.png" height="450" alt="TrainAsOne Workout">
