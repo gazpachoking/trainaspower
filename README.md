@@ -10,11 +10,20 @@ Surge](https://finalsurge.com) (Which [Stryd](https://stryd.com) can use in its 
     <img src="https://gazpachoking.github.io/trainaspower/strydworkout.png" height="450" alt="Stryd Workout">
 </p>
 
+
 ## Installation
+
+### From Source
+
 1. Install [Poetry](https://python-poetry.org/docs/#installation)
 1. Check out the git repository, or, download and extract the [source zip](https://github.com/gazpachoking/trainaspower/archive/master.zip).
 1. Run `poetry install` from the source directory.
 1. Copy `config.yaml.example` to `config.yaml` and fill in your passwords.
+
+### Windows Package
+1. Download the exec from [the latest release](https://github.com/gazpachoking/trainaspower/releases)
+1. Create a `config.yaml` file in the same directory as the exe based on the [sample config](https://github.com/gazpachoking/trainaspower/blob/master/config.yaml.example)
+
 
 ## Execution
 

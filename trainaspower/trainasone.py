@@ -4,6 +4,7 @@ from typing import Generator
 
 import dateparser
 import requests_html
+from loguru import logger
 
 from . import models
 
@@ -23,6 +24,7 @@ def login(email, password) -> None:
 
 
 def get_next_workout() -> models.Workout:
+    logger.info("Fetching next TrainAsOne workout.")
     r = tao_session.get("https://beta.trainasone.com/calendarView")
     upcoming = r.html.find(".today, .future")
     for day in upcoming:
@@ -48,6 +50,7 @@ def get_next_workout() -> models.Workout:
 
 
 def convert_steps(steps) -> Generator[models.Step, None, None]:
+    logger.info("Converting TrainAsOne workout to power.")
     for i, step in enumerate(steps):
         if step.find("ol"):
             times = int(re.search(r" (\d+) times", step.text).group(1))

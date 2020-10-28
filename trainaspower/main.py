@@ -1,15 +1,29 @@
 from pathlib import Path
+import sys
+
+from loguru import logger
 import yaml
 
 import trainaspower
 from trainaspower import finalsurge, stryd, trainasone
 
 
-directory = Path(trainaspower.__file__).parent.parent
-with open(directory/"config.yaml") as f:
-    config = yaml.safe_load(f)
+if getattr(sys, 'frozen', False):
+    directory = Path(sys.executable).parent
+else:
+    directory = Path(trainaspower.__file__).parent.parent
+try:
+    with open(directory/"config.yaml") as f:
+        config = yaml.safe_load(f)
+except FileNotFoundError:
+    logger.error(f"Could not find config.yaml in `{directory}`")
+    sys.exit(1)
+except yaml.YAMLError:
+    logger.exception("Error parsing YAML from config.yaml")
+    sys.exit(1)
 
 
+@logger.catch
 def main():
     trainasone.login(config["trainasone_email"], config["trainasone_password"])
     finalsurge.login(config["finalsurge_email"], config["finalsurge_password"])

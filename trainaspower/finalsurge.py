@@ -3,7 +3,7 @@ from datetime import timedelta
 from itertools import count
 
 import requests
-
+from loguru import logger
 
 finalsurge_session = requests.Session()
 
@@ -94,6 +94,7 @@ def convert_repeat(step, id_counter):
 
 
 def check_workout_exists(workout):
+    logger.debug(f"Checking `{workout.name}` exists on Final Surge")
     params = {
         "request": "WorkoutList",
         "scope": "USER",
@@ -112,7 +113,9 @@ def check_workout_exists(workout):
 
 
 def add_workout(workout):
+    logger.info("Posting workout to Final Surge")
     if check_workout_exists(workout):
+        logger.info(f"Workout {workout.name} already exists on Final Surge")
         return
     wo = convert_workout(workout)
     params = {

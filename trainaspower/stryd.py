@@ -2,6 +2,7 @@ from datetime import timedelta, date
 from functools import lru_cache
 
 import requests
+from loguru import logger
 
 from trainaspower import models
 
@@ -37,6 +38,7 @@ params = {
 def get_power_from_time(seconds: int) -> float:
     if seconds <= 0:
         return 0
+    logger.debug(f"Converting {seconds}s/mile to power via Stryd calculator")
     r = stryd_session.get(prediction_url, params={**params, "target_time": seconds})
     return r.json()["power_range"]["target"]
 
@@ -48,6 +50,7 @@ def convert_pace_range_to_power(pace_range: models.PaceRange) -> models.PowerRan
 
 
 def suggested_power_range_for_distance(distance: float) -> models.PowerRange:
+    logger.debug(f"Getting suggested power range for {distance} miles")
     r = stryd_session.get(
         prediction_url, params={**params, "race_distance": 1609.34 * distance}
     )
@@ -56,6 +59,7 @@ def suggested_power_range_for_distance(distance: float) -> models.PowerRange:
 
 
 def suggested_power_range_for_time(time: timedelta) -> models.PowerRange:
+    logger.debug(f"Getting suggested power range for {time.total_seconds()} seconds.")
     today = date.today()
     url = "https://www.stryd.com/b/api/v1/users/powerdurationcurve?datarange=07.22.2020-10.20.2020&detraining=0"
     params = {
