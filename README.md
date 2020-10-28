@@ -21,7 +21,7 @@ Surge](https://finalsurge.com) (Which [Stryd](https://stryd.com) can use in its 
 1. Copy `config.yaml.example` to `config.yaml` and fill in your passwords.
 
 ### Windows Package
-1. Download the exec from [the latest release](https://github.com/gazpachoking/trainaspower/releases)
+1. Download the exe from [the latest release](https://github.com/gazpachoking/trainaspower/releases)
 1. Create a `config.yaml` file in the same directory as the exe based on the [sample config](https://github.com/gazpachoking/trainaspower/blob/master/config.yaml.example)
 
 
