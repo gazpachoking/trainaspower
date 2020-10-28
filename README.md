@@ -12,9 +12,9 @@ Surge](https://finalsurge.com) (Which [Stryd](https://stryd.com) can use in its 
 
 ## Installation
 1. Install [Poetry](https://python-poetry.org/docs/#installation)
-1. Check out the git repository.
-1. Run `poetry install` from the git repo.
-1. Rename `config.yaml.example` to `config.yaml` and fill in your passwords.
+1. Check out the git repository, or, download and extract the [source zip](https://github.com/gazpachoking/trainaspower/archive/master.zip).
+1. Run `poetry install` from the source directory.
+1. Copy `config.yaml.example` to `config.yaml` and fill in your passwords.
 
 ## Execution
 
