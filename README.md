@@ -35,3 +35,7 @@ Run `echo $(poetry env info --path)/bin/trainaspower` to get the full path, whic
 
 Each execution will add the next workout to be completed, so it needs to be scheduled once a day, at a time
 after you will have finished your workout for the day.
+
+## TrainAsOne Notes
+You should set your TrainAsOne account to not adjust pace for undulation, (under Profile->Workout Preferences.)
+You are running with power now, undulation is built in! 
