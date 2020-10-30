@@ -22,6 +22,8 @@ def login(email, password) -> None:
         data=json.dumps(login_params).replace(" ", ""),
     )
     login_info = r.json()
+    if not login_info["success"]:
+        raise Exception("Failed to log in to Final Surge")
     finalsurge_session.headers.update(
         {"Authorization": f"Bearer {login_info['data']['token']}"}
     )

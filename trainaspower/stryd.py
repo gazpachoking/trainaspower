@@ -14,6 +14,8 @@ def login(email, password) -> None:
         "https://www.stryd.com/b/email/signin",
         json={"email": email, "password": password},
     )
+    if r.status_code != 200:
+        raise Exception("Failed to log in to Stryd")
     login_info = r.json()
     stryd_session.headers.update({"Authorization": f"Bearer: {login_info['token']}"})
 

@@ -18,9 +18,11 @@ tao_session = requests_html.HTMLSession()
 
 
 def login(email, password) -> None:
-    tao_session.post(
-        "https://beta.trainasone.com/login", data={"email": email, "password": password}
+    r = tao_session.post(
+        "https://beta.trainasone.com/login", data={"email": email, "password": password}, allow_redirects=False,
     )
+    if not r.is_redirect:
+        raise Exception("Failed to login to Train as One")
 
 
 def get_next_workout() -> models.Workout:
