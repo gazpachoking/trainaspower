@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: poetry install
       - name: Build with Pyinstaller
-        run: pyinstaller trainaspower.spec
+        run: poetry run pyinstaller trainaspower.spec
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
