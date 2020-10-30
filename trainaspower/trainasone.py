@@ -34,6 +34,7 @@ def get_next_workout() -> models.Workout:
         raise Exception("Next tao workout not found.")
     date = dateparser.parse(day.find(".title", first=True).text)
     workout_url = day.find(".summary>b>a", first=True).absolute_links.pop()
+    workout_url = "https://beta.trainasone.com/plannedWorkout?targetUserId=016e89c82ff200004aa88d95b508101c&workoutId=01750a590f4300004aa88d95b5080c35"
     workout_html = tao_session.get(workout_url).html
     steps = workout_html.find(".workoutSteps>ol>li")
     w = models.Workout()
@@ -45,7 +46,8 @@ def get_next_workout() -> models.Workout:
     w.id = number
     w.name = f"{number} {name}"
     w.steps = list(convert_steps(steps))
-    w.steps[0].type = "WARMUP"
+    if w.steps[0].type == "ACTIVE":
+        w.steps[0].type = "WARMUP"
     return w
 
 
@@ -73,14 +75,25 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
             try:
                 out_step.pace_range = parse_pace_range(step.text)
             except ValueError:
-                # 6 minute assesments and RECOVERY segments do not have a pace
+                # 6 minute assesments, RECOVERY, and perceived effort segments do not have a pace
                 if "pace-RECOVERY" in step.attrs["class"]:
-                    # Just hard coding this for now
+                    # TODO: Just hard coding this for now
                     out_step.power_range = models.PowerRange(0, 280)
                 elif "pace-EXTREME" in step.attrs["class"]:
                     out_step.power_range = suggested_power_range_for_time(
                         out_step.length
                     )
+                elif "pace-VERY_EASY" in step.attrs["class"]:
+                    # Perceived effort warmup
+                    out_step.type = "WARMUP"
+                    # TODO: figure out something better for this
+                    out_step.power_range = models.PowerRange(100, 280)
+                elif "pace-EASY" in step.attrs["class"]:
+                    # Perceived effort main body
+                    # TODO: figure out something better for this
+                    out_step.power_range = models.PowerRange(200, 300)
+                    pass
+
             else:
                 out_step.power_range = convert_pace_range_to_power(out_step.pace_range)
 
@@ -89,7 +102,11 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
                 out_step.power_range = models.PowerRange(
                     out_step.power_range.min - 1.5, out_step.power_range.max + 1.5
                 )
+            elif "pace-STANDING" in step.attrs["class"]:
+                out_step.type = "REST"
+                out_step.power_range = models.PowerRange(0,50)
             elif (
+                not out_step.type and
                 "pace-VERY_EASY" in step.attrs["class"]
                 or "pace-RECOVERY" in step.attrs["class"]
             ):
