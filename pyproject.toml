@@ -14,6 +14,7 @@ PyYAML = "^5.3.1"
 loguru = "^0.5.3"
 
 [tool.poetry.dev-dependencies]
+pyinstaller = "^4.0"
 
 [tool.poetry.scripts]
 trainaspower = "trainaspower.main:main"

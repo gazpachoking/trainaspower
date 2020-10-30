@@ -8,12 +8,19 @@ import trainaspower
 from trainaspower import finalsurge, stryd, trainasone
 
 
-if getattr(sys, 'frozen', False):
+if getattr(sys, "frozen", False):
     directory = Path(sys.executable).parent
 else:
     directory = Path(trainaspower.__file__).parent.parent
+
+logger.remove()
+logger.add(sys.stderr, level="INFO")
+logger.add(
+    directory / "trainaspower.log", level="DEBUG", rotation="3 days", retention="6 days"
+)
+
 try:
-    with open(directory/"config.yaml") as f:
+    with open(directory / "config.yaml") as f:
         config = yaml.safe_load(f)
 except FileNotFoundError:
     logger.error(f"Could not find config.yaml in `{directory}`")
