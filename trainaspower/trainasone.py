@@ -34,7 +34,6 @@ def get_next_workout() -> models.Workout:
         raise Exception("Next tao workout not found.")
     date = dateparser.parse(day.find(".title", first=True).text)
     workout_url = day.find(".summary>b>a", first=True).absolute_links.pop()
-    workout_url = "https://beta.trainasone.com/plannedWorkout?targetUserId=016e89c82ff200004aa88d95b508101c&workoutId=01750a590f4300004aa88d95b5080c35"
     workout_html = tao_session.get(workout_url).html
     steps = workout_html.find(".workoutSteps>ol>li")
     w = models.Workout()
