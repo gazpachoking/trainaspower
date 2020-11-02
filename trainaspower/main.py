@@ -35,7 +35,13 @@ def main():
     trainasone.login(config["trainasone_email"], config["trainasone_password"])
     finalsurge.login(config["finalsurge_email"], config["finalsurge_password"])
     stryd.login(config["stryd_email"], config["stryd_password"])
-    wo = trainasone.get_next_workout()
+    try:
+        wo = trainasone.get_next_workout()
+    except trainasone.WorkoutNotFound as e:
+        with open(directory / "trainasonecalendar.html", "w") as f:
+            f.write(e.html)
+        logger.error("Could not find next Train as One workout.")
+        sys.exit(1)
     finalsurge.add_workout(wo)
 
 
