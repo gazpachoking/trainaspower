@@ -40,7 +40,7 @@ def main():
     except trainasone.FindWorkoutException as exc:
         with open(directory / exc.filename, "w") as f:
             f.write(exc.html)
-        logger.error("Could not find next Train as One workout.")
+        logger.error(f"Could not find next Train as One workout. Created {exc.filename} for debugging.")
         sys.exit(1)
     finalsurge.add_workout(wo)
 
