@@ -17,9 +17,18 @@ from .stryd import (
 tao_session = requests_html.HTMLSession()
 
 
+class WorkoutNotFound(Exception):
+    def __init__(self, message, html):
+        super().__init__(message)
+        self.message = message
+        self.html = html
+
+
 def login(email, password) -> None:
     r = tao_session.post(
-        "https://beta.trainasone.com/login", data={"email": email, "password": password}, allow_redirects=False,
+        "https://beta.trainasone.com/login",
+        data={"email": email, "password": password},
+        allow_redirects=False,
     )
     if not r.is_redirect:
         raise Exception("Failed to login to Train as One")
@@ -33,7 +42,7 @@ def get_next_workout() -> models.Workout:
         if day.find(".summary>b>a"):
             break
     else:
-        raise Exception("Next tao workout not found.")
+        raise WorkoutNotFound("Next tao workout not found.", r.text)
     date = dateparser.parse(day.find(".title", first=True).text)
     workout_url = day.find(".summary>b>a", first=True).absolute_links.pop()
     workout_html = tao_session.get(workout_url).html
@@ -46,23 +55,31 @@ def get_next_workout() -> models.Workout:
     w.distance = parse_distance(workout_html.find(".detail", first=True).text)
     w.id = number
     w.name = f"{number} {name}"
+    logger.info("Converting TrainAsOne workout to power.")
     w.steps = list(convert_steps(steps))
-    if w.steps[0].type == "ACTIVE":
-        w.steps[0].type = "WARMUP"
     return w
 
 
 def convert_steps(steps) -> Generator[models.Step, None, None]:
-    logger.info("Converting TrainAsOne workout to power.")
-    for i, step in enumerate(steps):
+    for step in steps:
         if step.find("ol"):
             times = int(re.search(r" (\d+) times", step.text).group(1))
             out_step = models.RepeatStep(times)
             out_step.steps = list(convert_steps(step.find("ol>li")))
+            out_step.steps[0].type = "REST"
         else:
             out_step = models.ConcreteStep()
             out_step.description = step.text
-            out_step.type = "ACTIVE"
+
+            if "pace-VERY_EASY" in step.attrs["class"]:
+                out_step.type = "WARMUP"
+            elif any(
+                t in step.attrs["class"] for t in ["pace-RECOVERY", "pace-STANDING"]
+            ):
+                out_step.type = "REST"
+            else:
+                out_step.type = "ACTIVE"
+
             try:
                 out_step.length = parse_duration(step.text)
             except ValueError:
@@ -86,14 +103,12 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
                     )
                 elif "pace-VERY_EASY" in step.attrs["class"]:
                     # Perceived effort warmup
-                    out_step.type = "WARMUP"
                     # TODO: figure out something better for this
                     out_step.power_range = models.PowerRange(100, 280)
                 elif "pace-EASY" in step.attrs["class"]:
                     # Perceived effort main body
                     # TODO: figure out something better for this
                     out_step.power_range = models.PowerRange(200, 300)
-                    pass
 
             else:
                 out_step.power_range = convert_pace_range_to_power(out_step.pace_range)
@@ -101,17 +116,10 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
             if "pace-EASY" in step.attrs["class"]:
                 # Widen the range for 'easy' pace, don't need so much beeping in my ears
                 out_step.power_range = models.PowerRange(
-                    out_step.power_range.min - 1.5, out_step.power_range.max + 1.5
+                    out_step.power_range.min - 1.8, out_step.power_range.max + 1.8
                 )
             elif "pace-STANDING" in step.attrs["class"]:
-                out_step.type = "REST"
-                out_step.power_range = models.PowerRange(0,50)
-            elif (
-                not out_step.type and
-                "pace-VERY_EASY" in step.attrs["class"]
-                or "pace-RECOVERY" in step.attrs["class"]
-            ):
-                out_step.type = "REST"
+                out_step.power_range = models.PowerRange(0, 50)
 
         yield out_step
 

@@ -24,13 +24,13 @@ class Workout:
 
 class Step:
     description: str
+    type: str
 
 
 class ConcreteStep(Step):
     power_range: PowerRange
     pace_range: PaceRange
     length: datetime.timedelta
-    type: str
 
 
 class RepeatStep(Step):
@@ -41,3 +41,4 @@ class RepeatStep(Step):
         super().__init__()
         self.description = f"Repeat the following steps {repetitions} time{'s' if repetitions>1 else ''}."
         self.repetitions = repetitions
+        self.type = "REPEAT"
