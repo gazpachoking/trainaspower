@@ -17,7 +17,7 @@ from .stryd import (
 tao_session = requests_html.HTMLSession()
 
 
-class WorkoutNotFound(Exception):
+class FindWorkoutException(Exception):
     def __init__(self, message, html):
         super().__init__(message)
         self.message = message
@@ -37,27 +37,30 @@ def login(email, password) -> None:
 def get_next_workout() -> models.Workout:
     logger.info("Fetching next TrainAsOne workout.")
     r = tao_session.get("https://beta.trainasone.com/calendarView")
-    upcoming = r.html.find(".today, .future")
-    for day in upcoming:
-        if day.find(".summary>b>a"):
-            break
-    else:
-        raise WorkoutNotFound("Next tao workout not found.", r.text)
-    date = dateparser.parse(day.find(".title", first=True).text)
-    workout_url = day.find(".summary>b>a", first=True).absolute_links.pop()
-    workout_html = tao_session.get(workout_url).html
-    steps = workout_html.find(".workoutSteps>ol>li")
-    w = models.Workout()
-    w.date = date
-    name = workout_html.find(".summary span", first=True).text
-    number = workout_html.find(".summary sup", first=True).text
-    w.duration = parse_duration(workout_html.find(".detail>span", first=True).text)
-    w.distance = parse_distance(workout_html.find(".detail", first=True).text)
-    w.id = number
-    w.name = f"{number} {name}"
-    logger.info("Converting TrainAsOne workout to power.")
-    w.steps = list(convert_steps(steps))
-    return w
+    try:
+        upcoming = r.html.find(".today, .future")
+        for day in upcoming:
+            if day.find(".summary>b>a"):
+                break
+        else:
+            raise Exception("Next tao workout not found.")
+        date = dateparser.parse(day.find(".title", first=True).text)
+        workout_url = day.find(".summary>b>a", first=True).absolute_links.pop()
+        workout_html = tao_session.get(workout_url).html
+        steps = workout_html.find(".workoutSteps>ol>li")
+        w = models.Workout()
+        w.date = date
+        name = workout_html.find(".summary span", first=True).text
+        number = workout_html.find(".summary sup", first=True).text
+        w.duration = parse_duration(workout_html.find(".detail>span", first=True).text)
+        w.distance = parse_distance(workout_html.find(".detail", first=True).text)
+        w.id = number
+        w.name = f"{number} {name}"
+        logger.info("Converting TrainAsOne workout to power.")
+        w.steps = list(convert_steps(steps))
+        return w
+    except Exception as exc:
+        raise FindWorkoutException(f"Error finding next TaO workout: {exc.args[0]}", r.text) from exc
 
 
 def convert_steps(steps) -> Generator[models.Step, None, None]:

@@ -37,7 +37,7 @@ def main():
     stryd.login(config["stryd_email"], config["stryd_password"])
     try:
         wo = trainasone.get_next_workout()
-    except trainasone.WorkoutNotFound as e:
+    except trainasone.FindWorkoutException as e:
         with open(directory / "trainasonecalendar.html", "w") as f:
             f.write(e.html)
         logger.error("Could not find next Train as One workout.")
