@@ -18,10 +18,11 @@ tao_session = requests_html.HTMLSession()
 
 
 class FindWorkoutException(Exception):
-    def __init__(self, message, html):
+    def __init__(self, message, filename, html):
         super().__init__(message)
         self.message = message
         self.html = html
+        self.filename = filename
 
 
 def login(email, password) -> None:
@@ -40,13 +41,20 @@ def get_next_workout() -> models.Workout:
     try:
         upcoming = r.html.find(".today, .future")
         for day in upcoming:
-            if day.find(".summary>b>a"):
+            if day.find(".workout"):
                 break
         else:
             raise Exception("Next tao workout not found.")
         date = dateparser.parse(day.find(".title", first=True).text)
-        workout_url = day.find(".summary>b>a", first=True).absolute_links.pop()
-        workout_html = tao_session.get(workout_url).html
+        workout_url = day.find(".workout a", first=True).absolute_links.pop()
+    except Exception as exc:
+        raise FindWorkoutException(
+            f"Error finding next TaO workout: {exc.args[0]}", "taocalendar.html", r.text
+        ) from exc
+
+    r = tao_session.get(workout_url)
+    try:
+        workout_html = r.html
         steps = workout_html.find(".workoutSteps>ol>li")
         w = models.Workout()
         w.date = date
@@ -60,7 +68,9 @@ def get_next_workout() -> models.Workout:
         w.steps = list(convert_steps(steps))
         return w
     except Exception as exc:
-        raise FindWorkoutException(f"Error finding next TaO workout: {exc.args[0]}", r.text) from exc
+        raise FindWorkoutException(
+            f"Error finding workout steps: {exc.args[0]}", "taoworkout.html", r.text
+        ) from exc
 
 
 def convert_steps(steps) -> Generator[models.Step, None, None]:

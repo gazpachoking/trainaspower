@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "trainaspower"
-version = "0.2.4"
+version = "0.2.5"
 description = "Convert TrainAsOne plans to power and upload to Final Surge for use with Stryd pod."
 authors = ["Chase Sterling <chase.sterling@gmail.com>"]
 license = "MIT"
