@@ -38,7 +38,7 @@ def main():
     try:
         wo = trainasone.get_next_workout()
     except trainasone.FindWorkoutException as exc:
-        with open(directory / exc.filename, "w") as f:
+        with open(directory / exc.filename, "w", encoding="utf-8") as f:
             f.write(exc.html)
         logger.error(f"Could not find next Train as One workout. Created {exc.filename} for debugging.")
         sys.exit(1)

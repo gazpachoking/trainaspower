@@ -69,7 +69,7 @@ def get_next_workout() -> models.Workout:
         return w
     except Exception as exc:
         raise FindWorkoutException(
-            f"Error finding workout steps: {exc.args[0]}", "taoworkout.html", r.text
+            f"Error finding workout steps: {exc.args}", "taoworkout.html", r.text
         ) from exc
 
 
