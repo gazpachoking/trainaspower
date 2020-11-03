@@ -121,7 +121,7 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
                 elif "pace-EASY" in step.attrs["class"]:
                     # Perceived effort main body
                     # TODO: figure out something better for this
-                    out_step.power_range = models.PowerRange(200, 300)
+                    out_step.power_range = models.PowerRange(200, 400)
 
             else:
                 out_step.power_range = convert_pace_range_to_power(out_step.pace_range)
