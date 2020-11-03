@@ -8,6 +8,7 @@ ureg = UnitRegistry()
 mile = ureg.mile
 kilometer = ureg.kilometer
 second = ureg.second
+minute = ureg.minute
 
 
 class PowerRange(NamedTuple):
@@ -16,8 +17,8 @@ class PowerRange(NamedTuple):
 
 
 class PaceRange(NamedTuple):
-    min: int
-    max: int
+    min: Quantity
+    max: Quantity
 
 
 class Workout:
@@ -26,7 +27,7 @@ class Workout:
     steps: List["Step"]
     date: datetime.date
     id: str
-    duration: datetime.timedelta
+    duration: Quantity
     distance: Quantity
 
 

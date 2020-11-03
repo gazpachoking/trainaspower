@@ -38,4 +38,4 @@ after you will have finished your workout for the day.
 
 ## TrainAsOne Notes
 You should set your TrainAsOne account to not adjust pace for undulation, (under Profile->Workout Preferences.)
-You are running with power now, undulation is built in! 
+You are running with power now, undulation is built in! You also need to make sure your 'pace format' is set to 'pace'. 

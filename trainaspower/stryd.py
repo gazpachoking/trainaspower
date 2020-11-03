@@ -37,20 +37,23 @@ params = {
 
 
 @lru_cache()
-def get_power_from_time(seconds: int) -> float:
+@models.ureg.check("[time] / [length]")
+def get_power_from_pace(pace: models.Quantity) -> float:
+    seconds = round(pace.to("seconds/mile").magnitude)
     if seconds <= 0:
         return 0
-    logger.debug(f"Converting {seconds}s/mile to power via Stryd calculator")
+    logger.debug(f"Converting {pace} to power via Stryd calculator")
     r = stryd_session.get(prediction_url, params={**params, "target_time": seconds})
     return r.json()["power_range"]["target"]
 
 
 def convert_pace_range_to_power(pace_range: models.PaceRange) -> models.PowerRange:
     return models.PowerRange(
-        get_power_from_time(pace_range.min), get_power_from_time(pace_range.max)
+        get_power_from_pace(pace_range.min), get_power_from_pace(pace_range.max)
     )
 
 
+@models.ureg.check("[length]")
 def suggested_power_range_for_distance(distance: models.Quantity) -> models.PowerRange:
     logger.debug(f"Getting suggested power range for {distance}")
     r = stryd_session.get(
@@ -60,7 +63,8 @@ def suggested_power_range_for_distance(distance: models.Quantity) -> models.Powe
     return models.PowerRange(suggested_range["min"], suggested_range["max"])
 
 
-def suggested_power_range_for_time(time: timedelta) -> models.PowerRange:
+@models.ureg.check("[time]")
+def suggested_power_range_for_time(time: models.Quantity) -> models.PowerRange:
     logger.debug(f"Getting suggested power range for {time.total_seconds()} seconds.")
     today = date.today()
     url = "https://www.stryd.com/b/api/v1/users/powerdurationcurve?datarange=07.22.2020-10.20.2020&detraining=0"
@@ -69,7 +73,7 @@ def suggested_power_range_for_time(time: timedelta) -> models.PowerRange:
         "daterange": f"{today-timedelta(days=90):%m.%d.%Y}-{today:%m.%d.%Y}",
     }
     power = stryd_session.get(url, params=params).json()[0]["power_list"][
-        int(time.total_seconds() - 1)
+        round(time.to('seconds').magnitude - 1)
     ]
     # What should the range be?
     return models.PowerRange(power - 5, power + 10)

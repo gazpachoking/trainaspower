@@ -94,7 +94,7 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
                 out_step.type = "ACTIVE"
 
             try:
-                out_step.length = parse_duration(step.text) * models.second
+                out_step.length = parse_duration(step.text)
             except ValueError:
                 # 3.2km assessments are the only steps that do not have a duration
                 distance = parse_distance(step.text)
@@ -137,9 +137,9 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
         yield out_step
 
 
-def parse_pace(pace_string: str) -> int:
+def parse_time(pace_string: str) -> models.Quantity:
     min, sec = map(int, pace_string.split(":"))
-    return min * 60 + sec
+    return min * models.minute + sec * models.second
 
 
 def parse_pace_range(step_string: str) -> models.PaceRange:
@@ -147,17 +147,17 @@ def parse_pace_range(step_string: str) -> models.PaceRange:
     if not range_match:
         raise ValueError(f"Could not find pace range in `{step_string}`")
     range_string = range_match.group(1).strip()
-    conversion = 1
+    length = models.mile
     if range_string.endswith("km"):
-        conversion = 1.60934
+        length = models.kilometer
     range_string = range_string[:-4]
     min, max = range_string.split("-")
     if range_string.startswith(">"):
-        max = parse_pace(max) * conversion
+        max = parse_time(max) / length
         min = -1
     else:
-        min, max = parse_pace(min) * conversion, parse_pace(max) * conversion
-    return models.PaceRange(round(min), round(max))
+        min, max = parse_time(min) / length, parse_time(max) / length
+    return models.PaceRange(min, max)
 
 
 def parse_distance(text: str) -> models.Quantity:
@@ -167,7 +167,7 @@ def parse_distance(text: str) -> models.Quantity:
     return models.ureg.parse_expression(match.group(1))
 
 
-def parse_duration(step_string: str) -> timedelta:
+def parse_duration(step_string: str) -> models.Quantity:
     match = re.search(
         r"(?=\d+ (hour|minute|second))((?P<hours>\d+) hours?)?[, ]*((?P<minutes>\d+) minutes?)?[, ]*((?P<seconds>\d+) seconds?)?",
         step_string,
@@ -175,8 +175,8 @@ def parse_duration(step_string: str) -> timedelta:
     if not match:
         raise ValueError(f"No duration found in text `{step_string}`")
     parts = match.groupdict()
-    time_params = {}
-    for (name, param) in parts.items():
-        if param:
-            time_params[name] = int(param)
-    return timedelta(**time_params)
+    duration = models.ureg.Quantity('0 seconds')
+    for (unit, amount) in parts.items():
+        if amount:
+            duration += int(amount) * models.ureg.parse_units(unit)
+    return duration
