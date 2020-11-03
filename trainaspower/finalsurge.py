@@ -51,12 +51,12 @@ def convert_step(step, id_counter):
         "type": "step",
         "id": next(id_counter),
         "name": None,
-        "durationType": "TIME" if isinstance(step.length, timedelta) else "DISTANCE",
-        "duration": str(step.length) if isinstance(step.length, timedelta) else 0,
+        "durationType": "TIME" if step.length.check("[time]") else "DISTANCE",
+        "duration": str(step.length.magnitude) if step.length.check("[time]") else 0,
         "targetAbsOrPct": "",
-        "durationDist": 0 if isinstance(step.length, timedelta) else step.length,
+        "durationDist": 0 if step.length.check("[time]") else step.length.magnitude,
         "data": [],
-        "distUnit": "mi",
+        "distUnit": f"{step.length.units:~}" if step.length.check("[length]") else "mi",
         "target": [
             {
                 "targetType": "power",
@@ -139,8 +139,8 @@ def add_workout(workout):
             "Activity": {
                 "activity_type_key": "00000001-0001-0001-0001-000000000001",
                 "activity_type_name": "Run",
-                "planned_amount": workout.distance,
-                "planned_amount_type": "mi",
+                "planned_amount": workout.distance.magnitude,
+                "planned_amount_type": f"{workout.distance.units:~}",
                 "planned_duration": workout.duration.total_seconds(),
             },
         },

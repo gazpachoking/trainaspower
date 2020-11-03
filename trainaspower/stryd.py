@@ -51,10 +51,10 @@ def convert_pace_range_to_power(pace_range: models.PaceRange) -> models.PowerRan
     )
 
 
-def suggested_power_range_for_distance(distance: float) -> models.PowerRange:
-    logger.debug(f"Getting suggested power range for {distance} miles")
+def suggested_power_range_for_distance(distance: models.Quantity) -> models.PowerRange:
+    logger.debug(f"Getting suggested power range for {distance}")
     r = stryd_session.get(
-        prediction_url, params={**params, "race_distance": 1609.34 * distance}
+        prediction_url, params={**params, "race_distance": distance.to(models.ureg.meter).magnitude}
     )
     suggested_range = r.json()["power_range_suggested"]
     return models.PowerRange(suggested_range["min"], suggested_range["max"])

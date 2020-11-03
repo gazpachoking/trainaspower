@@ -94,7 +94,7 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
                 out_step.type = "ACTIVE"
 
             try:
-                out_step.length = parse_duration(step.text)
+                out_step.length = parse_duration(step.text) * models.second
             except ValueError:
                 # 3.2km assessments are the only steps that do not have a duration
                 distance = parse_distance(step.text)
@@ -146,21 +146,25 @@ def parse_pace_range(step_string: str) -> models.PaceRange:
     range_match = re.search(r"\[(.*)\]", step_string)
     if not range_match:
         raise ValueError(f"Could not find pace range in `{step_string}`")
-    range_string = range_match.group(1).strip(" /mi")
+    range_string = range_match.group(1).strip()
+    conversion = 1
+    if range_string.endswith("km"):
+        conversion = 1.60934
+    range_string = range_string[:-4]
     min, max = range_string.split("-")
     if range_string.startswith(">"):
-        max = parse_pace(max)
+        max = parse_pace(max) * conversion
         min = -1
     else:
-        min, max = parse_pace(min), parse_pace(max)
-    return models.PaceRange(min, max)
+        min, max = parse_pace(min) * conversion, parse_pace(max) * conversion
+    return models.PaceRange(round(min), round(max))
 
 
-def parse_distance(text: str) -> float:
-    match = re.search(r"\(~?([\d.]+) mi\)", text)
+def parse_distance(text: str) -> models.Quantity:
+    match = re.search(r"\(~?([\d.]+ (mi|km))\)", text)
     if not match:
         raise ValueError(f"No distance found in `{text}`")
-    return float(match.group(1))
+    return models.ureg.parse_expression(match.group(1))
 
 
 def parse_duration(step_string: str) -> timedelta:

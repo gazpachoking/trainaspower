@@ -1,6 +1,14 @@
 import datetime
 from typing import List, NamedTuple, Union
 
+from pint import UnitRegistry, Quantity
+
+
+ureg = UnitRegistry()
+mile = ureg.mile
+kilometer = ureg.kilometer
+second = ureg.second
+
 
 class PowerRange(NamedTuple):
     min: Union[float, int]
@@ -19,7 +27,7 @@ class Workout:
     date: datetime.date
     id: str
     duration: datetime.timedelta
-    distance: float
+    distance: Quantity
 
 
 class Step:
@@ -30,7 +38,7 @@ class Step:
 class ConcreteStep(Step):
     power_range: PowerRange
     pace_range: PaceRange
-    length: datetime.timedelta
+    length: Quantity
 
 
 class RepeatStep(Step):
