@@ -16,7 +16,7 @@ else:
 logger.remove()
 logger.add(sys.stderr, level="INFO")
 logger.add(
-    directory / "trainaspower.log", level="DEBUG", rotation="3 days", retention="6 days"
+    directory / "trainaspower.log", level="DEBUG", rotation="3 days", retention="6 days", diagnose=True,
 )
 
 try:
