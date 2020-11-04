@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from itertools import count
 
 import requests
@@ -41,6 +42,7 @@ def convert_workout(workout):
                 "name": workout.name,
                 "sport": "running",
                 "steps": [convert_step(s, counter) for s in workout.steps],
+                "target": "power"
             }
         ],
         "target_override": None,
@@ -57,7 +59,7 @@ def convert_step(step, id_counter):
         "name": None,
         "durationType": "TIME" if step.length.check("[time]") else "DISTANCE",
         "duration": (
-            round(step.length.to("seconds").magnitude)
+            str(timedelta(seconds=step.length.to("seconds").magnitude))
             if step.length.check("[time]")
             else 0
         ),
