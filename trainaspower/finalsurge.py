@@ -1,11 +1,13 @@
 import json
-from datetime import timedelta
 from itertools import count
 
 import requests
 from loguru import logger
 
 finalsurge_session = requests.Session()
+
+
+user_key = "NOT LOGGED IN"
 
 
 def login(email, password) -> None:
@@ -27,6 +29,8 @@ def login(email, password) -> None:
     finalsurge_session.headers.update(
         {"Authorization": f"Bearer {login_info['data']['token']}"}
     )
+    global user_key
+    user_key = login_info["data"]["user_key"]
 
 
 def convert_workout(workout):
@@ -104,7 +108,7 @@ def check_workout_exists(workout):
     params = {
         "request": "WorkoutList",
         "scope": "USER",
-        "scopekey": "123a8bc7-3911-4960-9b79-dfaa163c69b2",
+        "scopekey": user_key,
         "startdate": workout.date.strftime("%Y-%m-%d"),
         "enddate": workout.date.strftime("%Y-%m-%d"),
         "ishistory": False,
@@ -127,7 +131,7 @@ def add_workout(workout):
     params = {
         "request": "WorkoutSave",
         "scope": "USER",
-        "scope_key": "123a8bc7-3911-4960-9b79-dfaa163c69b2",
+        "scope_key": user_key,
     }
 
     add_wo = finalsurge_session.post(
@@ -153,7 +157,7 @@ def add_workout(workout):
     params = {
         "request": "WorkoutBuilderSave",
         "scope": "USER",
-        "scopekey": "123a8bc7-3911-4960-9b79-dfaa163c69b2",
+        "scopekey": user_key,
         "workout_key": wo_key,
     }
     finalsurge_session.post(
