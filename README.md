@@ -33,19 +33,29 @@ Run `poetry run trainaspower` from the checkout directory.
 If you want to set it up in crontab, you have to get the path to the executable.
 Run `echo $(poetry env info --path)/bin/trainaspower` to get the full path, which you can then enter into crontab.
 
-Each execution will add the next workout to be completed, so it needs to be scheduled once a day, at a time
-after you will have finished your workout for the day.
+Each execution will add the next workout to be completed, so it needs to be scheduled once a day, sometime after
+midnight when your next workout will have been finalized by TaO.
 
 ## TrainAsOne Notes
 You should set your TrainAsOne account to not adjust pace for undulation, (under Profile->Workout Preferences.)
 You are running with power now, undulation is built in! You also need to make sure your 'pace format' is set to 'pace'. 
 
-### Methodology
+## Methodology
 - Pace ranges are converted using the [Stryd race calculator](https://www.stryd.com/powercenter/tools)
 - 6 minute assessments look up your Stryd power curve, and take the max value from the last 90 days,
 then adds a range around it.
 - 3.2 km assesments use the Stryd race calculator to suggest a power for the distance and uses that range.
-- "easy" segments get a little extra padding for the range, so there's less annoying beeping in your ears.
-(I plan on making this padding adjustable per segment type in the config file in the future.)
 - Perceived effort runs have a very wide hard coded range based on my pace. Planning on moving this to a wide
 range based on % critical power.
+
+## Config Options
+
+Your config must contain all the credentials for the sites required (stryd, trainasone, and finalsurge.)
+
+Your config may also contain `X_pace_adjust` values, where `X` is one of the Train as One pace categories
+(very_easy, easy, fast, extreme.) If these are specified, it will adjust the range for these types of steps.
+For example, to widen the range for 'easy' steps to 5 watts lower and higher than the pace generated ranges:
+
+```
+easy_pace_adjust: [-5, 5]
+```

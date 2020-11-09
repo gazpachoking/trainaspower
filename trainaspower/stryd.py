@@ -67,7 +67,7 @@ def suggested_power_range_for_distance(distance: models.Quantity) -> models.Powe
 def suggested_power_range_for_time(time: models.Quantity) -> models.PowerRange:
     logger.debug(f"Getting suggested power range for {time.total_seconds()} seconds.")
     today = date.today()
-    url = "https://www.stryd.com/b/api/v1/users/powerdurationcurve?datarange=07.22.2020-10.20.2020&detraining=0"
+    url = "https://www.stryd.com/b/api/v1/users/powerdurationcurve"
     params = {
         "detraining": 0,
         "daterange": f"{today-timedelta(days=90):%m.%d.%Y}-{today:%m.%d.%Y}",

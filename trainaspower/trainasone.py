@@ -35,7 +35,7 @@ def login(email, password) -> None:
         raise Exception("Failed to login to Train as One")
 
 
-def get_next_workout() -> models.Workout:
+def get_next_workout(config) -> models.Workout:
     logger.info("Fetching next TrainAsOne workout.")
     r = tao_session.get("https://beta.trainasone.com/calendarView")
     try:
@@ -65,7 +65,7 @@ def get_next_workout() -> models.Workout:
         w.id = number
         w.name = f"{number} {name}"
         logger.info("Converting TrainAsOne workout to power.")
-        w.steps = list(convert_steps(steps))
+        w.steps = list(convert_steps(steps, config))
         return w
     except Exception as exc:
         raise FindWorkoutException(
@@ -73,12 +73,16 @@ def get_next_workout() -> models.Workout:
         ) from exc
 
 
-def convert_steps(steps) -> Generator[models.Step, None, None]:
+def convert_steps(steps, config: models.Config) -> Generator[models.Step, None, None]:
     for step in steps:
         if step.find("ol"):
-            times = int(re.search(r" (\d+) times", step.text).group(1))
+            times_match = re.search(r" (\d+) times", step.text)
+            if times_match:
+                times = int(times_match.group(1))
+            else:
+                times = 1
             out_step = models.RepeatStep(times)
-            out_step.steps = list(convert_steps(step.find("ol>li")))
+            out_step.steps = list(convert_steps(step.find("ol>li"), config))
             out_step.steps[0].type = "REST"
         else:
             out_step = models.ConcreteStep()
@@ -126,10 +130,30 @@ def convert_steps(steps) -> Generator[models.Step, None, None]:
             else:
                 out_step.power_range = convert_pace_range_to_power(out_step.pace_range)
 
-            if "pace-EASY" in step.attrs["class"]:
-                # Widen the range for 'easy' pace, don't need so much beeping in my ears
+            if "pace-VERY_EASY" in step.attrs["class"]:
                 out_step.power_range = models.PowerRange(
-                    out_step.power_range.min - 1.8, out_step.power_range.max + 1.8
+                    out_step.power_range.min + config.very_easy_pace_adjust[0],
+                    out_step.power_range.max + config.very_easy_pace_adjust[1],
+                )
+            elif "pace-EASY" in step.attrs["class"]:
+                out_step.power_range = models.PowerRange(
+                    out_step.power_range.min + config.easy_pace_adjust[0],
+                    out_step.power_range.max + config.easy_pace_adjust[1],
+                )
+            elif "pace-RECOVERY" in step.attrs["class"]:
+                out_step.power_range = models.PowerRange(
+                    out_step.power_range.min + config.recovery_pace_adjust[0],
+                    out_step.power_range.max + config.recovery_pace_adjust[1],
+                )
+            elif "pace-FAST" in step.attrs["class"]:
+                out_step.power_range = models.PowerRange(
+                    out_step.power_range.min + config.fast_pace_adjust[0],
+                    out_step.power_range.max + config.fast_pace_adjust[1],
+                )
+            elif "pace-EXTREME" in step.attrs["class"]:
+                out_step.power_range = models.PowerRange(
+                    out_step.power_range.min + config.extreme_pace_adjust[0],
+                    out_step.power_range.max + config.extreme_pace_adjust[1],
                 )
             elif "pace-STANDING" in step.attrs["class"]:
                 out_step.power_range = models.PowerRange(0, 50)
@@ -154,7 +178,7 @@ def parse_pace_range(step_string: str) -> models.PaceRange:
     min, max = range_string.split("-")
     if range_string.startswith(">"):
         max = parse_time(max) / length
-        min = -1
+        min = models.ureg.Quantity(0, units=models.second/length)
     else:
         min, max = parse_time(min) / length, parse_time(max) / length
     return models.PaceRange(min, max)
@@ -175,7 +199,7 @@ def parse_duration(step_string: str) -> models.Quantity:
     if not match:
         raise ValueError(f"No duration found in text `{step_string}`")
     parts = match.groupdict()
-    duration = models.ureg.Quantity('0 seconds')
+    duration = models.ureg.Quantity("0 seconds")
     for (unit, amount) in parts.items():
         if amount:
             duration += int(amount) * models.ureg.parse_units(unit)

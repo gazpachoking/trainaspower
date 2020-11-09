@@ -1,5 +1,6 @@
 import datetime
-from typing import List, NamedTuple, Union
+from dataclasses import dataclass
+from typing import List, NamedTuple, Union, Tuple
 
 from pint import UnitRegistry, Quantity
 from pydantic import BaseModel
@@ -19,11 +20,24 @@ class Config(BaseModel):
     trainasone_password: str
     finalsurge_email: str
     finalsurge_password: str
+    recovery_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
+    very_easy_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
+    easy_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
+    fast_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
+    extreme_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
+
+    class Config:
+        extra = 'forbid'
 
 
-class PowerRange(NamedTuple):
+@dataclass
+class PowerRange:
     min: Union[float, int]
     max: Union[float, int]
+
+    def __init__(self, min_val, max_val):
+        self.min = max(0, min_val)
+        self.max = max_val
 
 
 class PaceRange(NamedTuple):

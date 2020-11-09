@@ -54,7 +54,7 @@ def main():
     finalsurge.login(config.finalsurge_email, config.finalsurge_password)
     stryd.login(config.stryd_email, config.stryd_password)
     try:
-        wo = trainasone.get_next_workout()
+        wo = trainasone.get_next_workout(config)
     except trainasone.FindWorkoutException as exc:
         with open(directory / exc.filename, "w", encoding="utf-8") as f:
             f.write(exc.html)
