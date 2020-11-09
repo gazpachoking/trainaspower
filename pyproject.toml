@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "trainaspower"
-version = "0.3.4"
+version = "0.4.0"
 description = "Convert TrainAsOne plans to power and upload to Final Surge for use with Stryd pod."
 authors = ["Chase Sterling <chase.sterling@gmail.com>"]
 license = "MIT"
@@ -13,6 +13,7 @@ dateparser = "^0.7.6"
 PyYAML = "^5.3.1"
 loguru = "^0.5.3"
 Pint = "^0.16.1"
+pydantic = "^1.7.2"
 
 [tool.poetry.dev-dependencies]
 pyinstaller = "^4.0"
