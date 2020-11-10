@@ -1,84 +1,87 @@
 [[package]]
-name = "altgraph"
-version = "0.17"
-description = "Python graph (network) package"
 category = "dev"
+description = "Python graph (network) package"
+name = "altgraph"
 optional = false
 python-versions = "*"
+version = "0.17"
 
 [[package]]
-name = "appdirs"
-version = "1.4.4"
+category = "main"
 description = "A small Python module for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
-category = "main"
+name = "appdirs"
 optional = false
 python-versions = "*"
+version = "1.4.4"
 
 [[package]]
-name = "beautifulsoup4"
-version = "4.9.3"
-description = "Screen-scraping library"
 category = "main"
+description = "Screen-scraping library"
+name = "beautifulsoup4"
 optional = false
 python-versions = "*"
+version = "4.9.3"
 
 [package.dependencies]
-soupsieve = {version = ">1.2", markers = "python_version >= \"3.0\""}
+[package.dependencies.soupsieve]
+python = ">=3.0"
+version = ">1.2"
 
 [package.extras]
 html5lib = ["html5lib"]
 lxml = ["lxml"]
 
 [[package]]
-name = "bs4"
-version = "0.0.1"
-description = "Dummy package for Beautiful Soup"
 category = "main"
+description = "Dummy package for Beautiful Soup"
+name = "bs4"
 optional = false
 python-versions = "*"
+version = "0.0.1"
 
 [package.dependencies]
 beautifulsoup4 = "*"
 
 [[package]]
-name = "certifi"
-version = "2020.6.20"
+category = "main"
 description = "Python package for providing Mozilla's CA Bundle."
-category = "main"
+name = "certifi"
 optional = false
 python-versions = "*"
+version = "2020.6.20"
 
 [[package]]
-name = "chardet"
-version = "3.0.4"
+category = "main"
 description = "Universal encoding detector for Python 2 and 3"
-category = "main"
+name = "chardet"
 optional = false
 python-versions = "*"
+version = "3.0.4"
 
 [[package]]
-name = "colorama"
-version = "0.4.4"
-description = "Cross-platform colored terminal text."
 category = "main"
+description = "Cross-platform colored terminal text."
+marker = "sys_platform == \"win32\""
+name = "colorama"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+version = "0.4.4"
 
 [[package]]
-name = "cssselect"
-version = "1.1.0"
-description = "cssselect parses CSS3 Selectors and translates them to XPath 1.0"
 category = "main"
+description = "cssselect parses CSS3 Selectors and translates them to XPath 1.0"
+name = "cssselect"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "1.1.0"
 
 [[package]]
-name = "dateparser"
-version = "0.7.6"
-description = "Date parsing library designed to parse dates from HTML pages"
 category = "main"
+description = "Date parsing library designed to parse dates from HTML pages"
+name = "dateparser"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+version = "0.7.6"
 
 [package.dependencies]
 python-dateutil = "*"
@@ -87,51 +90,52 @@ regex = "!=2019.02.19"
 tzlocal = "*"
 
 [[package]]
-name = "fake-useragent"
-version = "0.1.11"
-description = "Up to date simple useragent faker with real world database"
 category = "main"
+description = "Up to date simple useragent faker with real world database"
+name = "fake-useragent"
 optional = false
 python-versions = "*"
+version = "0.1.11"
 
 [[package]]
-name = "future"
-version = "0.18.2"
-description = "Clean single-source support for Python 3 and 2"
 category = "dev"
+description = "Clean single-source support for Python 3 and 2"
+marker = "sys_platform == \"win32\""
+name = "future"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+version = "0.18.2"
 
 [[package]]
-name = "idna"
-version = "2.10"
-description = "Internationalized Domain Names in Applications (IDNA)"
 category = "main"
+description = "Internationalized Domain Names in Applications (IDNA)"
+name = "idna"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "2.10"
 
 [[package]]
-name = "loguru"
-version = "0.5.3"
-description = "Python logging made (stupidly) simple"
 category = "main"
+description = "Python logging made (stupidly) simple"
+name = "loguru"
 optional = false
 python-versions = ">=3.5"
+version = "0.5.3"
 
 [package.dependencies]
-colorama = {version = ">=0.3.4", markers = "sys_platform == \"win32\""}
-win32-setctime = {version = ">=1.0.0", markers = "sys_platform == \"win32\""}
+colorama = ">=0.3.4"
+win32-setctime = ">=1.0.0"
 
 [package.extras]
 dev = ["codecov (>=2.0.15)", "colorama (>=0.3.4)", "flake8 (>=3.7.7)", "tox (>=3.9.0)", "tox-travis (>=0.12)", "pytest (>=4.6.2)", "pytest-cov (>=2.7.1)", "Sphinx (>=2.2.1)", "sphinx-autobuild (>=0.7.1)", "sphinx-rtd-theme (>=0.4.3)", "black (>=19.10b0)", "isort (>=5.1.1)"]
 
 [[package]]
-name = "lxml"
-version = "4.6.1"
-description = "Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API."
 category = "main"
+description = "Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API."
+name = "lxml"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, != 3.4.*"
+version = "4.6.1"
 
 [package.extras]
 cssselect = ["cssselect (>=0.7)"]
@@ -140,54 +144,56 @@ htmlsoup = ["beautifulsoup4"]
 source = ["Cython (>=0.29.7)"]
 
 [[package]]
-name = "macholib"
-version = "1.14"
-description = "Mach-O header analysis and editing"
 category = "dev"
+description = "Mach-O header analysis and editing"
+marker = "sys_platform == \"darwin\""
+name = "macholib"
 optional = false
 python-versions = "*"
+version = "1.14"
 
 [package.dependencies]
 altgraph = ">=0.15"
 
 [[package]]
-name = "packaging"
-version = "20.4"
-description = "Core utilities for Python packages"
 category = "main"
+description = "Core utilities for Python packages"
+name = "packaging"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "20.4"
 
 [package.dependencies]
 pyparsing = ">=2.0.2"
 six = "*"
 
 [[package]]
-name = "parse"
-version = "1.18.0"
-description = "parse() is the opposite of format()"
 category = "main"
+description = "parse() is the opposite of format()"
+name = "parse"
 optional = false
 python-versions = "*"
+version = "1.18.0"
 
 [[package]]
-name = "pefile"
-version = "2019.4.18"
-description = "Python PE parsing module"
 category = "dev"
+description = "Python PE parsing module"
+marker = "sys_platform == \"win32\""
+name = "pefile"
 optional = false
 python-versions = "*"
+version = "2019.4.18"
 
 [package.dependencies]
 future = "*"
 
 [[package]]
-name = "pint"
-version = "0.16.1"
-description = "Physical quantities module"
 category = "main"
+description = "Physical quantities module"
+name = "pint"
 optional = false
 python-versions = ">=3.6"
+version = "0.16.1"
 
 [package.dependencies]
 packaging = "*"
@@ -198,68 +204,73 @@ test = ["pytest", "pytest-mpl", "pytest-cov"]
 uncertainties = ["uncertainties (>=3.0)"]
 
 [[package]]
-name = "pydantic"
-version = "1.7.2"
-description = "Data validation and settings management using python 3.6 type hinting"
 category = "main"
+description = "Data validation and settings management using python 3.6 type hinting"
+name = "pydantic"
 optional = false
 python-versions = ">=3.6"
+version = "1.7.2"
 
 [package.extras]
 dotenv = ["python-dotenv (>=0.10.4)"]
 email = ["email-validator (>=1.0.3)"]
 typing_extensions = ["typing-extensions (>=3.7.2)"]
 
+[package.source]
+reference = ""
+type = "url"
+url = "https://files.pythonhosted.org/packages/24/5d/7be779647b54cef0398fe4f7e7da45f083afe7f7b2ee5afa6b4d6a1caf04/pydantic-1.7.2.tar.gz"
 [[package]]
-name = "pyee"
-version = "7.0.4"
-description = "A port of node.js's EventEmitter to python."
 category = "main"
+description = "A port of node.js's EventEmitter to python."
+name = "pyee"
 optional = false
 python-versions = "*"
+version = "7.0.4"
 
 [[package]]
-name = "pyinstaller"
-version = "4.0"
-description = "PyInstaller bundles a Python application and all its dependencies into a single package."
 category = "dev"
+description = "PyInstaller bundles a Python application and all its dependencies into a single package."
+name = "pyinstaller"
 optional = false
 python-versions = "*"
+version = "4.0"
 
 [package.dependencies]
 altgraph = "*"
-macholib = {version = ">=1.8", markers = "sys_platform == \"darwin\""}
-pefile = {version = ">=2017.8.1", markers = "sys_platform == \"win32\""}
+macholib = ">=1.8"
+pefile = ">=2017.8.1"
 pyinstaller-hooks-contrib = ">=2020.6"
-pywin32-ctypes = {version = ">=0.2.0", markers = "sys_platform == \"win32\""}
+pywin32-ctypes = ">=0.2.0"
+setuptools = "*"
 
 [package.extras]
 encryption = ["tinyaes (>=1.0.0)"]
 hook_testing = ["pytest (>=2.7.3)", "execnet (>=1.5.0)", "psutil"]
 
 [[package]]
-name = "pyinstaller-hooks-contrib"
-version = "2020.10"
-description = "Community maintained hooks for PyInstaller"
 category = "dev"
+description = "Community maintained hooks for PyInstaller"
+name = "pyinstaller-hooks-contrib"
 optional = false
 python-versions = "*"
+version = "2020.10"
 
 [[package]]
-name = "pyparsing"
-version = "2.4.7"
-description = "Python parsing module"
 category = "main"
+description = "Python parsing module"
+name = "pyparsing"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+version = "2.4.7"
 
 [[package]]
-name = "pyppeteer"
-version = "0.2.2"
-description = "Headless chrome/chromium automation library (unofficial port of puppeteer)"
 category = "main"
+description = "Headless chrome/chromium automation library (unofficial port of puppeteer)"
+name = "pyppeteer"
 optional = false
 python-versions = ">=3.6.1,<4.0.0"
+version = "0.2.2"
 
 [package.dependencies]
 appdirs = ">=1.4.3,<2.0.0"
@@ -269,67 +280,68 @@ urllib3 = ">=1.25.8,<2.0.0"
 websockets = ">=8.1,<9.0"
 
 [[package]]
-name = "pyquery"
-version = "1.4.1"
-description = "A jquery-like library for python"
 category = "main"
+description = "A jquery-like library for python"
+name = "pyquery"
 optional = false
 python-versions = "*"
+version = "1.4.1"
 
 [package.dependencies]
 cssselect = ">0.7.9"
 lxml = ">=2.1"
 
 [[package]]
-name = "python-dateutil"
-version = "2.8.1"
-description = "Extensions to the standard Python datetime module"
 category = "main"
+description = "Extensions to the standard Python datetime module"
+name = "python-dateutil"
 optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
+version = "2.8.1"
 
 [package.dependencies]
 six = ">=1.5"
 
 [[package]]
-name = "pytz"
-version = "2020.1"
+category = "main"
 description = "World timezone definitions, modern and historical"
-category = "main"
+name = "pytz"
 optional = false
 python-versions = "*"
+version = "2020.1"
 
 [[package]]
-name = "pywin32-ctypes"
-version = "0.2.0"
-description = ""
 category = "dev"
+description = ""
+marker = "sys_platform == \"win32\""
+name = "pywin32-ctypes"
 optional = false
 python-versions = "*"
+version = "0.2.0"
 
 [[package]]
-name = "pyyaml"
-version = "5.3.1"
+category = "main"
 description = "YAML parser and emitter for Python"
-category = "main"
+name = "pyyaml"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+version = "5.3.1"
 
 [[package]]
-name = "regex"
-version = "2020.10.15"
-description = "Alternative regular expression module, to replace re."
 category = "main"
+description = "Alternative regular expression module, to replace re."
+name = "regex"
 optional = false
 python-versions = "*"
+version = "2020.10.15"
 
 [[package]]
-name = "requests"
-version = "2.24.0"
-description = "Python HTTP for Humans."
 category = "main"
+description = "Python HTTP for Humans."
+name = "requests"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+version = "2.24.0"
 
 [package.dependencies]
 certifi = ">=2017.4.17"
@@ -342,12 +354,12 @@ security = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)"]
 socks = ["PySocks (>=1.5.6,<1.5.7 || >1.5.7)", "win-inet-pton"]
 
 [[package]]
-name = "requests-html"
-version = "0.10.0"
-description = "HTML Parsing for Humans."
 category = "main"
+description = "HTML Parsing for Humans."
+name = "requests-html"
 optional = false
 python-versions = ">=3.6.0"
+version = "0.10.0"
 
 [package.dependencies]
 bs4 = "*"
@@ -359,50 +371,51 @@ requests = "*"
 w3lib = "*"
 
 [[package]]
-name = "six"
-version = "1.15.0"
-description = "Python 2 and 3 compatibility utilities"
 category = "main"
+description = "Python 2 and 3 compatibility utilities"
+name = "six"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
+version = "1.15.0"
 
 [[package]]
-name = "soupsieve"
-version = "2.0.1"
-description = "A modern CSS selector implementation for Beautiful Soup."
 category = "main"
+description = "A modern CSS selector implementation for Beautiful Soup."
+marker = "python_version >= \"3.0\""
+name = "soupsieve"
 optional = false
 python-versions = ">=3.5"
+version = "2.0.1"
 
 [[package]]
-name = "tqdm"
-version = "4.50.2"
-description = "Fast, Extensible Progress Meter"
 category = "main"
+description = "Fast, Extensible Progress Meter"
+name = "tqdm"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*"
+version = "4.50.2"
 
 [package.extras]
 dev = ["py-make (>=0.1.0)", "twine", "argopt", "pydoc-markdown"]
 
 [[package]]
-name = "tzlocal"
-version = "2.1"
-description = "tzinfo object for the local timezone"
 category = "main"
+description = "tzinfo object for the local timezone"
+name = "tzlocal"
 optional = false
 python-versions = "*"
+version = "2.1"
 
 [package.dependencies]
 pytz = "*"
 
 [[package]]
-name = "urllib3"
-version = "1.25.11"
-description = "HTTP library with thread-safe connection pooling, file post, and more."
 category = "main"
+description = "HTTP library with thread-safe connection pooling, file post, and more."
+name = "urllib3"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
+version = "1.25.11"
 
 [package.extras]
 brotli = ["brotlipy (>=0.6.0)"]
@@ -410,39 +423,39 @@ secure = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "cer
 socks = ["PySocks (>=1.5.6,<1.5.7 || >1.5.7,<2.0)"]
 
 [[package]]
-name = "w3lib"
-version = "1.22.0"
-description = "Library of web-related functions"
 category = "main"
+description = "Library of web-related functions"
+name = "w3lib"
 optional = false
 python-versions = "*"
+version = "1.22.0"
 
 [package.dependencies]
 six = ">=1.4.1"
 
 [[package]]
-name = "websockets"
-version = "8.1"
-description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
 category = "main"
+description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
+name = "websockets"
 optional = false
 python-versions = ">=3.6.1"
+version = "8.1"
 
 [[package]]
-name = "win32-setctime"
-version = "1.0.3"
-description = "A small Python utility to set file creation time on Windows"
 category = "main"
+description = "A small Python utility to set file creation time on Windows"
+marker = "sys_platform == \"win32\""
+name = "win32-setctime"
 optional = false
 python-versions = ">=3.5"
+version = "1.0.3"
 
 [package.extras]
 dev = ["pytest (>=4.6.2)", "black (>=19.3b0)"]
 
 [metadata]
-lock-version = "1.1"
+content-hash = "cdc9ea85bf2dc8d2e8f3f96e5221797840f66a91bb0f0c7298c2c6560509038d"
 python-versions = "^3.8,^3.9"
-content-hash = "12af35df824d83a61a3476e326db26e611970faa0a66483a929cbfbd4774826c"
 
 [metadata.files]
 altgraph = [
@@ -526,6 +539,7 @@ lxml = [
     {file = "lxml-4.6.1-cp38-cp38-manylinux2014_aarch64.whl", hash = "sha256:e65c221b2115a91035b55a593b6eb94aa1206fa3ab374f47c6dc10d364583ff9"},
     {file = "lxml-4.6.1-cp38-cp38-win32.whl", hash = "sha256:d6f8c23f65a4bfe4300b85f1f40f6c32569822d08901db3b6454ab785d9117cc"},
     {file = "lxml-4.6.1-cp38-cp38-win_amd64.whl", hash = "sha256:573b2f5496c7e9f4985de70b9bbb4719ffd293d5565513e04ac20e42e6e5583f"},
+    {file = "lxml-4.6.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:098fb713b31050463751dcc694878e1d39f316b86366fb9fe3fbbe5396ac9fab"},
     {file = "lxml-4.6.1-cp39-cp39-manylinux1_i686.whl", hash = "sha256:1d87936cb5801c557f3e981c9c193861264c01209cb3ad0964a16310ca1b3301"},
     {file = "lxml-4.6.1-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:2d5896ddf5389560257bbe89317ca7bcb4e54a02b53a3e572e1ce4226512b51b"},
     {file = "lxml-4.6.1-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:9b06690224258db5cd39a84e993882a6874676f5de582da57f3df3a82ead9174"},
@@ -551,30 +565,7 @@ pint = [
     {file = "Pint-0.16.1-py2.py3-none-any.whl", hash = "sha256:63ccb7153754923fd95477be69dcf8d7d0764ec2ebb3f6945f920c31fdf13392"},
     {file = "Pint-0.16.1.tar.gz", hash = "sha256:d43a2e9ae003164978b60fdf8cd920d8581e1a5991df8dded29b00f4850ec83a"},
 ]
-pydantic = [
-    {file = "pydantic-1.7.2-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:dfaa6ed1d509b5aef4142084206584280bb6e9014f01df931ec6febdad5b200a"},
-    {file = "pydantic-1.7.2-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:2182ba2a9290964b278bcc07a8d24207de709125d520efec9ad6fa6f92ee058d"},
-    {file = "pydantic-1.7.2-cp36-cp36m-manylinux2014_i686.whl", hash = "sha256:0fe8b45d31ae53d74a6aa0bf801587bd49970070eac6a6326f9fa2a302703b8a"},
-    {file = "pydantic-1.7.2-cp36-cp36m-manylinux2014_x86_64.whl", hash = "sha256:01f0291f4951580f320f7ae3f2ecaf0044cdebcc9b45c5f882a7e84453362420"},
-    {file = "pydantic-1.7.2-cp36-cp36m-win_amd64.whl", hash = "sha256:4ba6b903e1b7bd3eb5df0e78d7364b7e831ed8b4cd781ebc3c4f1077fbcb72a4"},
-    {file = "pydantic-1.7.2-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:b11fc9530bf0698c8014b2bdb3bbc50243e82a7fa2577c8cfba660bcc819e768"},
-    {file = "pydantic-1.7.2-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:a3c274c49930dc047a75ecc865e435f3df89715c775db75ddb0186804d9b04d0"},
-    {file = "pydantic-1.7.2-cp37-cp37m-manylinux2014_i686.whl", hash = "sha256:c68b5edf4da53c98bb1ccb556ae8f655575cb2e676aef066c12b08c724a3f1a1"},
-    {file = "pydantic-1.7.2-cp37-cp37m-manylinux2014_x86_64.whl", hash = "sha256:95d4410c4e429480c736bba0db6cce5aaa311304aea685ebcf9ee47571bfd7c8"},
-    {file = "pydantic-1.7.2-cp37-cp37m-win_amd64.whl", hash = "sha256:a2fc7bf77ed4a7a961d7684afe177ff59971828141e608f142e4af858e07dddc"},
-    {file = "pydantic-1.7.2-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:b9572c0db13c8658b4a4cb705dcaae6983aeb9842248b36761b3fbc9010b740f"},
-    {file = "pydantic-1.7.2-cp38-cp38-manylinux1_i686.whl", hash = "sha256:f83f679e727742b0c465e7ef992d6da4a7e5268b8edd8fdaf5303276374bef52"},
-    {file = "pydantic-1.7.2-cp38-cp38-manylinux2014_i686.whl", hash = "sha256:e5fece30e80087d9b7986104e2ac150647ec1658c4789c89893b03b100ca3164"},
-    {file = "pydantic-1.7.2-cp38-cp38-manylinux2014_x86_64.whl", hash = "sha256:ce2d452961352ba229fe1e0b925b41c0c37128f08dddb788d0fd73fd87ea0f66"},
-    {file = "pydantic-1.7.2-cp38-cp38-win_amd64.whl", hash = "sha256:fc21a37ff3f545de80b166e1735c4172b41b017948a3fb2d5e2f03c219eac50a"},
-    {file = "pydantic-1.7.2-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:c9760d1556ec59ff745f88269a8f357e2b7afc75c556b3a87b8dda5bc62da8ba"},
-    {file = "pydantic-1.7.2-cp39-cp39-manylinux1_i686.whl", hash = "sha256:2c1673633ad1eea78b1c5c420a47cd48717d2ef214c8230d96ca2591e9e00958"},
-    {file = "pydantic-1.7.2-cp39-cp39-manylinux2014_i686.whl", hash = "sha256:388c0c26c574ff49bad7d0fd6ed82fbccd86a0473fa3900397d3354c533d6ebb"},
-    {file = "pydantic-1.7.2-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:ab1d5e4d8de00575957e1c982b951bffaedd3204ddd24694e3baca3332e53a23"},
-    {file = "pydantic-1.7.2-cp39-cp39-win_amd64.whl", hash = "sha256:f045cf7afb3352a03bc6cb993578a34560ac24c5d004fa33c76efec6ada1361a"},
-    {file = "pydantic-1.7.2-py3-none-any.whl", hash = "sha256:6665f7ab7fbbf4d3c1040925ff4d42d7549a8c15fe041164adfe4fc2134d4cce"},
-    {file = "pydantic-1.7.2.tar.gz", hash = "sha256:c8200aecbd1fb914e1bd061d71a4d1d79ecb553165296af0c14989b89e90d09b"},
-]
+pydantic = []
 pyee = [
     {file = "pyee-7.0.4-py2.py3-none-any.whl", hash = "sha256:0667fd696f55ffdf9f2646fa60557b4eeae1a427315d3938b614ee40755d18b6"},
     {file = "pyee-7.0.4.tar.gz", hash = "sha256:15c6bcc14de2c2b3d8ee8923283fca182bcfab4155975a5165c66fc4bf44b680"},
