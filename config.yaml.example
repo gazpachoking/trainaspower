@@ -9,3 +9,4 @@ very_easy_pace_adjust: [0, 0]
 easy_pace_adjust: [0, 0]
 fast_pace_adjust: [0, 0]
 extreme_pace_adjust: [0, 0]
+number_of_workouts: 1

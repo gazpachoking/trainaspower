@@ -25,6 +25,7 @@ class Config(BaseModel):
     easy_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
     fast_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
     extreme_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
+    number_of_workouts: int = 1
 
     class Config:
         extra = 'forbid'

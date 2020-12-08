@@ -1,3 +1,4 @@
+from itertools import islice
 from pathlib import Path
 import sys
 
@@ -54,14 +55,14 @@ def main():
     finalsurge.login(config.finalsurge_email, config.finalsurge_password)
     stryd.login(config.stryd_email, config.stryd_password)
     try:
-        wo = trainasone.get_next_workout(config)
+        for wo in islice(trainasone.get_next_workouts(config), config.number_of_workouts):
+            finalsurge.add_workout(wo)
     except trainasone.FindWorkoutException as exc:
         with open(directory / exc.filename, "w", encoding="utf-8") as f:
             f.write(exc.html)
         logger.opt(exception=True).debug("Error")
         logger.error(f"Could not load next Train as One workout. Created {exc.filename} for debugging.")
         sys.exit(1)
-    finalsurge.add_workout(wo)
 
 
 if __name__ == "__main__":

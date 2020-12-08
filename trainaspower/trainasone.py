@@ -1,3 +1,4 @@
+import datetime
 import re
 from typing import Generator
 
@@ -35,23 +36,27 @@ def login(email, password) -> None:
         raise Exception("Failed to login to Train as One")
 
 
-def get_next_workout(config) -> models.Workout:
+def get_next_workouts(config) -> Generator[models.Workout, None, None]:
     logger.info("Fetching next TrainAsOne workout.")
     r = tao_session.get("https://beta.trainasone.com/calendarView")
+    found = False
     try:
         upcoming = r.html.find(".today, .future")
         for day in upcoming:
             if day.find(".workout"):
-                break
-        else:
+                date = dateparser.parse(day.find(".title", first=True).text)
+                workout_url = day.find(".workout a", first=True).absolute_links.pop()
+                yield get_workout(workout_url, date, config)
+                found = True
+        if not found:
             raise Exception("Next tao workout not found.")
-        date = dateparser.parse(day.find(".title", first=True).text)
-        workout_url = day.find(".workout a", first=True).absolute_links.pop()
     except Exception as exc:
         raise FindWorkoutException(
             f"Error finding next TaO workout: {exc.args[0]}", "taocalendar.html", r.text
         ) from exc
 
+
+def get_workout(workout_url: str, date: datetime.date, config: models.Config) -> models.Workout:
     r = tao_session.get(workout_url)
     try:
         workout_html = r.html
