@@ -42,7 +42,7 @@ def convert_workout(workout):
                 "name": workout.name,
                 "sport": "running",
                 "steps": [convert_step(s, counter) for s in workout.steps],
-                "target": "power"
+                "target": "power",
             }
         ],
         "target_override": None,
@@ -105,8 +105,9 @@ def convert_repeat(step, id_counter):
     }
 
 
-def check_workout_exists(workout):
-    logger.debug(f"Checking `{workout.name}` exists on Final Surge")
+def delete_existing_tap_workout(workout):
+    """Checks if TrainAsPower already has an (uncompleted) workout on the same day as given workout."""
+    logger.debug(f"Checking TrainAsPower workout exists on Final Surge")
     params = {
         "request": "WorkoutList",
         "scope": "USER",
@@ -119,22 +120,30 @@ def check_workout_exists(workout):
     data = finalsurge_session.get(
         "https://beta.finalsurge.com/api/Data", params=params
     ).json()
-    if any(workout.id in w["name"] for w in data["data"]):
-        return True
-    return False
+    for existing_workout in data["data"]:
+        if existing_workout["workout_completion"] == 1:
+            continue
+        if "TrainAsPower" in (existing_workout["description"] or ""):
+            break
+    else:
+        return
+    logger.info(f"Deleting existing TrainAsPower workout `{existing_workout['name']}`")
+    params = {
+        "request": "WorkoutDelete",
+        "scope": "USER",
+        "scopekey": user_key,
+        "workout_key": existing_workout["key"],
+    }
+    response = finalsurge_session.get(
+        "https://beta.finalsurge.com/api/Data", params=params
+    )
 
 
 def add_workout(workout):
-    logger.info("Posting workout to Final Surge")
-    if check_workout_exists(workout):
-        logger.info(f"Workout {workout.name} already exists on Final Surge")
-        return
+    delete_existing_tap_workout(workout)
+    logger.info(f"Posting workout `{workout.name}` to Final Surge")
     wo = convert_workout(workout)
-    params = {
-        "request": "WorkoutSave",
-        "scope": "USER",
-        "scope_key": user_key,
-    }
+    params = {"request": "WorkoutSave", "scope": "USER", "scope_key": user_key}
 
     add_wo = finalsurge_session.post(
         "https://beta.finalsurge.com/api/Data",
@@ -144,7 +153,7 @@ def add_workout(workout):
             "workout_date": workout.date.isoformat(),
             "order": 1,
             "name": workout.name,
-            "description": "",
+            "description": "TrainAsPower converted workout",
             "is_race": False,
             "Activity": {
                 "activity_type_key": "00000001-0001-0001-0001-000000000001",
