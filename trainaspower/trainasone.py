@@ -1,5 +1,4 @@
 import re
-from datetime import timedelta
 from typing import Generator
 
 import dateparser
@@ -12,6 +11,7 @@ from .stryd import (
     convert_pace_range_to_power,
     suggested_power_range_for_distance,
     suggested_power_range_for_time,
+    get_critical_power,
 )
 
 tao_session = requests_html.HTMLSession()
@@ -74,7 +74,7 @@ def get_next_workout(config) -> models.Workout:
 
 
 def convert_steps(steps, config: models.Config) -> Generator[models.Step, None, None]:
-    for step in steps:
+    for index, step in enumerate(steps):
         if step.find("ol"):
             times_match = re.search(r" (\d+) times", step.text)
             if times_match:
@@ -89,7 +89,10 @@ def convert_steps(steps, config: models.Config) -> Generator[models.Step, None, 
             out_step.description = step.text
 
             if "pace-VERY_EASY" in step.attrs["class"]:
-                out_step.type = "WARMUP"
+                if index < 2:
+                    out_step.type = "WARMUP"
+                else:
+                    out_step.type = "REST"
             elif any(
                 t in step.attrs["class"] for t in ["pace-RECOVERY", "pace-STANDING"]
             ):
@@ -110,22 +113,22 @@ def convert_steps(steps, config: models.Config) -> Generator[models.Step, None, 
             try:
                 out_step.pace_range = parse_pace_range(step.text)
             except ValueError:
-                # 6 minute assesments, RECOVERY, and perceived effort segments do not have a pace
+                # 6 minute assessments, RECOVERY, and perceived effort segments do not have a pace
+                # Provide a generous power range based on %CP for slower ranges
                 if "pace-RECOVERY" in step.attrs["class"]:
-                    # TODO: Just hard coding this for now
-                    out_step.power_range = models.PowerRange(0, 280)
+                    out_step.power_range = models.PowerRange(0, get_critical_power() * 0.8)
                 elif "pace-EXTREME" in step.attrs["class"]:
                     out_step.power_range = suggested_power_range_for_time(
                         out_step.length
                     )
                 elif "pace-VERY_EASY" in step.attrs["class"]:
                     # Perceived effort warmup
-                    # TODO: figure out something better for this
-                    out_step.power_range = models.PowerRange(100, 280)
+                    cp = get_critical_power()
+                    out_step.power_range = models.PowerRange(cp * 0.3, cp * 0.8)
                 elif "pace-EASY" in step.attrs["class"]:
                     # Perceived effort main body
-                    # TODO: figure out something better for this
-                    out_step.power_range = models.PowerRange(200, 400)
+                    cp = get_critical_power()
+                    out_step.power_range = models.PowerRange(cp * 0.55, cp * 0.9)
 
             else:
                 out_step.power_range = convert_pace_range_to_power(out_step.pace_range)
@@ -178,7 +181,7 @@ def parse_pace_range(step_string: str) -> models.PaceRange:
     min, max = range_string.split("-")
     if range_string.startswith(">"):
         max = parse_time(max) / length
-        min = models.ureg.Quantity(0, units=models.second/length)
+        min = models.ureg.Quantity(0, units=models.second / length)
     else:
         min, max = parse_time(min) / length, parse_time(max) / length
     return models.PaceRange(min, max)

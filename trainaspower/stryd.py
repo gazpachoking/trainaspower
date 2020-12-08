@@ -7,6 +7,7 @@ from loguru import logger
 from trainaspower import models
 
 stryd_session = requests.Session()
+user_id = None
 
 
 def login(email, password) -> None:
@@ -18,6 +19,8 @@ def login(email, password) -> None:
         raise Exception("Failed to log in to Stryd")
     login_info = r.json()
     stryd_session.headers.update({"Authorization": f"Bearer: {login_info['token']}"})
+    global user_id
+    user_id = login_info["id"]
 
 
 prediction_url = "https://www.stryd.com/b/api/v1/users/race/prediction"
@@ -65,15 +68,26 @@ def suggested_power_range_for_distance(distance: models.Quantity) -> models.Powe
 
 @models.ureg.check("[time]")
 def suggested_power_range_for_time(time: models.Quantity) -> models.PowerRange:
-    logger.debug(f"Getting suggested power range for {time.total_seconds()} seconds.")
+    logger.debug(f"Getting suggested power range for {time}.")
     today = date.today()
     url = "https://www.stryd.com/b/api/v1/users/powerdurationcurve"
     params = {
+        "datarange": f"{today-timedelta(days=90):%m.%d.%Y}-{today:%m.%d.%Y}",
         "detraining": 0,
-        "daterange": f"{today-timedelta(days=90):%m.%d.%Y}-{today:%m.%d.%Y}",
     }
-    power = stryd_session.get(url, params=params).json()[0]["power_list"][
+    response = stryd_session.get(url, params=params)
+    power = response.json()[0]["power_list"][
         round(time.to('seconds').magnitude - 1)
     ]
     # What should the range be?
     return models.PowerRange(power - 5, power + 10)
+
+
+@lru_cache()
+def get_profile() -> dict:
+    url = f"https://www.stryd.com/b/api/v1/users/{user_id}"
+    return stryd_session.get(url).json()
+
+
+def get_critical_power() -> float:
+    return get_profile()["training_info"]["critical_power"]
