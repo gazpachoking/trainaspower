@@ -45,8 +45,7 @@ You are running with power now, undulation is built in! You also need to make su
 - 6 minute assessments look up your Stryd power curve, and take the max value from the last 90 days,
 then adds a range around it.
 - 3.2 km assesments use the Stryd race calculator to suggest a power for the distance and uses that range.
-- Perceived effort runs have a very wide hard coded range based on my pace. Planning on moving this to a wide
-range based on % critical power.
+- Perceived effort runs have a very wide hard coded range based on % of critical power.
 
 ## Config Options
 
