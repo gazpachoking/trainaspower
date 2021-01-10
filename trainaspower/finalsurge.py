@@ -1,9 +1,12 @@
 import json
-from datetime import timedelta
+from datetime import timedelta, date
 from itertools import count
+from typing import Optional, Union
 
 import requests
 from loguru import logger
+
+from trainaspower import models
 
 finalsurge_session = requests.Session()
 
@@ -11,7 +14,7 @@ finalsurge_session = requests.Session()
 user_key = "NOT LOGGED IN"
 
 
-def login(email, password) -> None:
+def login(email: str, password: str) -> None:
     login_params = {
         "email": email,
         "password": password,
@@ -34,7 +37,7 @@ def login(email, password) -> None:
     user_key = login_info["data"]["user_key"]
 
 
-def convert_workout(workout):
+def convert_workout(workout: models.Workout) -> dict:
     counter = count(1)
     result = {
         "target_options": [
@@ -50,9 +53,11 @@ def convert_workout(workout):
     return result
 
 
-def convert_step(step, id_counter):
-    if hasattr(step, "repetitions"):
+def convert_step(step: models.Step, id_counter) -> dict:
+    if isinstance(step, models.RepeatStep):
         return convert_repeat(step, id_counter)
+    if not isinstance(step, models.ConcreteStep):
+        raise ValueError(f"unknown step type received {step.type}")
     s = {
         "type": "step",
         "id": next(id_counter),
@@ -93,7 +98,7 @@ def convert_step(step, id_counter):
     return s
 
 
-def convert_repeat(step, id_counter):
+def convert_repeat(step: models.RepeatStep, id_counter) -> dict:
     return {
         "type": "repeat",
         "name": None,
@@ -105,15 +110,15 @@ def convert_repeat(step, id_counter):
     }
 
 
-def delete_existing_tap_workout(workout):
+def get_existing_tap_workout(wo_date: date) -> Optional[str]:
     """Checks if TrainAsPower already has an (uncompleted) workout on the same day as given workout."""
     logger.debug(f"Checking TrainAsPower workout exists on Final Surge")
     params = {
         "request": "WorkoutList",
         "scope": "USER",
         "scopekey": user_key,
-        "startdate": workout.date.strftime("%Y-%m-%d"),
-        "enddate": workout.date.strftime("%Y-%m-%d"),
+        "startdate": wo_date.strftime("%Y-%m-%d"),
+        "enddate": wo_date.strftime("%Y-%m-%d"),
         "ishistory": False,
         "completedonly": False,
     }
@@ -124,24 +129,17 @@ def delete_existing_tap_workout(workout):
         if existing_workout["workout_completion"] == 1:
             continue
         if "TrainAsPower" in (existing_workout["description"] or ""):
-            break
+            return existing_workout["key"]
     else:
-        return
-    logger.info(f"Deleting existing TrainAsPower workout `{existing_workout['name']}`")
-    params = {
-        "request": "WorkoutDelete",
-        "scope": "USER",
-        "scopekey": user_key,
-        "workout_key": existing_workout["key"],
-    }
-    response = finalsurge_session.get(
-        "https://beta.finalsurge.com/api/Data", params=params
-    )
+        return None
 
 
-def add_workout(workout):
-    delete_existing_tap_workout(workout)
-    logger.info(f"Posting workout `{workout.name}` to Final Surge")
+def add_workout(workout: models.Workout) -> None:
+    wo_key = get_existing_tap_workout(workout.date) or None
+    if wo_key:
+        logger.info(f"Updating workout `{workout.name}` on Final Surge")
+    else:
+        logger.info(f"Posting workout `{workout.name}` to Final Surge")
     wo = convert_workout(workout)
     params = {"request": "WorkoutSave", "scope": "USER", "scope_key": user_key}
 
@@ -149,7 +147,7 @@ def add_workout(workout):
         "https://beta.finalsurge.com/api/Data",
         params=params,
         json={
-            "key": None,
+            "key": wo_key,
             "workout_date": workout.date.isoformat(),
             "order": 1,
             "name": workout.name,
@@ -164,7 +162,8 @@ def add_workout(workout):
             },
         },
     )
-    wo_key = add_wo.json()["new_workout_key"]
+    if not wo_key:
+        wo_key = add_wo.json()["new_workout_key"]
     params = {
         "request": "WorkoutBuilderSave",
         "scope": "USER",
