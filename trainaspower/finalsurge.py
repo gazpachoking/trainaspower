@@ -130,12 +130,11 @@ def get_existing_tap_workout(wo_date: date) -> Optional[str]:
             continue
         if "TrainAsPower" in (existing_workout["description"] or ""):
             return existing_workout["key"]
-    else:
-        return None
+    return None
 
 
 def add_workout(workout: models.Workout) -> None:
-    wo_key = get_existing_tap_workout(workout.date) or None
+    wo_key = get_existing_tap_workout(workout.date)
     if wo_key:
         logger.info(f"Updating workout `{workout.name}` on Final Surge")
     else:
@@ -172,4 +171,20 @@ def add_workout(workout: models.Workout) -> None:
     }
     finalsurge_session.post(
         "https://beta.finalsurge.com/api/Data", params=params, json=wo
+    )
+
+
+def remove_workout(wo_date: date) -> None:
+    wo_key = get_existing_tap_workout(wo_date)
+    if not wo_key:
+        return
+    logger.info(f"Deleting existing TrainAsPower workout `{wo_key}`")
+    params = {
+        "request": "WorkoutDelete",
+        "scope": "USER",
+        "scopekey": user_key,
+        "workout_key": wo_key,
+    }
+    response = finalsurge_session.get(
+        "https://beta.finalsurge.com/api/Data", params=params
     )

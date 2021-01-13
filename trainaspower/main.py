@@ -1,5 +1,6 @@
 from itertools import islice
 from pathlib import Path
+import datetime
 import sys
 
 from loguru import logger
@@ -44,6 +45,15 @@ def load_config():
     return config
 
 
+def daterange(start_date: datetime.date, end_date: datetime.date):
+    if isinstance(start_date, datetime.datetime):
+        start_date = start_date.date()
+    if isinstance(end_date, datetime.datetime):
+        end_date = end_date.date()
+    for n in range(int((end_date - start_date).days)):
+        yield start_date + datetime.timedelta(n)
+
+
 @logger.catch
 def main():
     setup_logging()
@@ -54,9 +64,15 @@ def main():
     trainasone.login(config.trainasone_email, config.trainasone_password)
     finalsurge.login(config.finalsurge_email, config.finalsurge_password)
     stryd.login(config.stryd_email, config.stryd_password)
+    start_date = datetime.date.today()
     try:
         for wo in islice(trainasone.get_next_workouts(config), config.number_of_workouts):
+            # Clear any cancelled workouts
+            for wo_date in daterange(start_date, wo.date):
+                finalsurge.remove_workout(wo_date)
+            # Add the new workout
             finalsurge.add_workout(wo)
+            start_date = wo.date + datetime.timedelta(1)
     except trainasone.FindWorkoutException as exc:
         with open(directory / exc.filename, "w", encoding="utf-8") as f:
             f.write(exc.html)
