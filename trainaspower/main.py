@@ -1,16 +1,15 @@
-from itertools import islice
-from pathlib import Path
+import argparse
 import datetime
 import sys
-import argparse
+from itertools import islice
+from pathlib import Path
 
+import yaml
 from loguru import logger
 from pydantic import ValidationError
-import yaml
 
 import trainaspower
-from trainaspower import finalsurge, stryd, trainasone, models
-
+from trainaspower import finalsurge, models, stryd, trainasone
 
 if getattr(sys, "frozen", False):
     directory = Path(sys.executable).parent
@@ -22,7 +21,11 @@ def setup_logging():
     logger.remove()
     logger.add(sys.stderr, level="INFO")
     logger.add(
-        directory / "trainaspower.log", level="DEBUG", rotation="3 days", retention="6 days", diagnose=True,
+        directory / "trainaspower.log",
+        level="DEBUG",
+        rotation="3 days",
+        retention="6 days",
+        diagnose=True,
     )
 
 
@@ -55,26 +58,35 @@ def daterange(start_date: datetime.date, end_date: datetime.date):
 def main():
     setup_logging()
 
-    config_file_default_path = '{}/config.yaml'.format(directory)
+    config_file_default_path = directory / "config.yaml"
 
     parser = argparse.ArgumentParser(
-        description='Create power based structured workouts from TrainAsOne data')
-    parser.add_argument('config_file', type=argparse.FileType('r'), nargs='?', default=config_file_default_path,
-                        help="Path to config.yaml, defaults to \"{}\"".format(config_file_default_path))
+        description="Create power based structured workouts from TrainAsOne data"
+    )
+    parser.add_argument(
+        "config_file",
+        type=argparse.FileType("r"),
+        nargs="?",
+        default=config_file_default_path,
+        help=f"Path to config.yaml, defaults to '{config_file_default_path}'",
+    )
     args = parser.parse_args()
 
     try:
         config = load_config(args.config_file)
-        args.config_file.close()
     except Exception:
-        args.config_file.close()
         sys.exit(1)
+    finally:
+        args.config_file.close()
+
     trainasone.login(config.trainasone_email, config.trainasone_password)
     finalsurge.login(config.finalsurge_email, config.finalsurge_password)
     stryd.login(config.stryd_email, config.stryd_password)
     start_date = datetime.date.today()
     try:
-        for wo in islice(trainasone.get_next_workouts(config), config.number_of_workouts):
+        for wo in islice(
+            trainasone.get_next_workouts(config), config.number_of_workouts
+        ):
             # Clear any cancelled workouts
             for wo_date in daterange(start_date, wo.date):
                 finalsurge.remove_workout(wo_date)
@@ -86,7 +98,8 @@ def main():
             f.write(exc.html)
         logger.opt(exception=True).debug("Error")
         logger.error(
-            f"Could not load next Train as One workout. Created {exc.filename} for debugging.")
+            f"Could not load next Train as One workout. Created {exc.filename} for debugging."
+        )
         sys.exit(1)
 
 
