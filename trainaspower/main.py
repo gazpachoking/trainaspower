@@ -2,6 +2,7 @@ from itertools import islice
 from pathlib import Path
 import datetime
 import sys
+import argparse
 
 from loguru import logger
 from pydantic import ValidationError
@@ -25,13 +26,9 @@ def setup_logging():
     )
 
 
-def load_config():
+def load_config(config_file):
     try:
-        with open(directory / "config.yaml") as f:
-            raw_config = yaml.safe_load(f)
-    except FileNotFoundError:
-        logger.error(f"Could not find config.yaml in `{directory}`")
-        raise
+        raw_config = yaml.safe_load(config_file)
     except yaml.YAMLError:
         logger.exception("Error parsing YAML from config.yaml")
         raise
@@ -57,9 +54,20 @@ def daterange(start_date: datetime.date, end_date: datetime.date):
 @logger.catch
 def main():
     setup_logging()
+
+    config_file_default_path = '{}/config.yaml'.format(directory)
+
+    parser = argparse.ArgumentParser(
+        description='Create power based structured workouts from TrainAsOne data')
+    parser.add_argument('config_file', type=argparse.FileType('r'), nargs='?', default=config_file_default_path,
+                        help="Path to config.yaml, defaults to \"{}\"".format(config_file_default_path))
+    args = parser.parse_args()
+
     try:
-        config = load_config()
+        config = load_config(args.config_file)
+        args.config_file.close()
     except Exception:
+        args.config_file.close()
         sys.exit(1)
     trainasone.login(config.trainasone_email, config.trainasone_password)
     finalsurge.login(config.finalsurge_email, config.finalsurge_password)
@@ -77,7 +85,8 @@ def main():
         with open(directory / exc.filename, "w", encoding="utf-8") as f:
             f.write(exc.html)
         logger.opt(exception=True).debug("Error")
-        logger.error(f"Could not load next Train as One workout. Created {exc.filename} for debugging.")
+        logger.error(
+            f"Could not load next Train as One workout. Created {exc.filename} for debugging.")
         sys.exit(1)
 
 
