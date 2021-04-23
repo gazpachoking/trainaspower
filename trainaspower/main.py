@@ -67,7 +67,7 @@ def main():
         "config_file",
         type=argparse.FileType("r"),
         nargs="?",
-        default=config_file_default_path,
+        default=str(config_file_default_path),
         help=f"Path to config.yaml, defaults to '{config_file_default_path}'",
     )
     args = parser.parse_args()
