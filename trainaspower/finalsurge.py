@@ -24,8 +24,8 @@ def login(email: str, password: str) -> None:
         "deviceUniqueIdentifier": "",
     }
     r = finalsurge_session.post(
-        "https://beta.finalsurge.com/api/login",
-        json=login_params,
+        "https://beta.finalsurge.com/api/Data?request=login",
+        data=json.dumps(login_params).replace(" ", ""),
     )
     login_info = r.json()
     if not login_info["success"]:
@@ -114,6 +114,7 @@ def get_existing_tap_workout(wo_date: date) -> Optional[str]:
     """Checks if TrainAsPower already has an (uncompleted) workout on the same day as given workout."""
     logger.debug(f"Checking TrainAsPower workout exists on Final Surge")
     params = {
+        "request": "WorkoutList",
         "scope": "USER",
         "scopekey": user_key,
         "startdate": wo_date.strftime("%Y-%m-%d"),
@@ -122,7 +123,7 @@ def get_existing_tap_workout(wo_date: date) -> Optional[str]:
         "completedonly": False,
     }
     data = finalsurge_session.get(
-        "https://beta.finalsurge.com/api/WorkoutList", params=params
+        "https://beta.finalsurge.com/api/Data", params=params
     ).json()
     for existing_workout in data["data"]:
         if existing_workout["workout_completion"] == 1:
@@ -139,10 +140,10 @@ def add_workout(workout: models.Workout) -> None:
     else:
         logger.info(f"Posting workout `{workout.name}` to Final Surge")
     wo = convert_workout(workout)
-    params = {"scope": "USER", "scope_key": user_key}
+    params = {"request": "WorkoutSave", "scope": "USER", "scope_key": user_key}
 
     add_wo = finalsurge_session.post(
-        "https://beta.finalsurge.com/api/WorkoutSave",
+        "https://beta.finalsurge.com/api/Data",
         params=params,
         json={
             "key": wo_key,
@@ -163,12 +164,13 @@ def add_workout(workout: models.Workout) -> None:
     if not wo_key:
         wo_key = add_wo.json()["new_workout_key"]
     params = {
+        "request": "WorkoutBuilderSave",
         "scope": "USER",
         "scopekey": user_key,
         "workout_key": wo_key,
     }
     finalsurge_session.post(
-        "https://beta.finalsurge.com/api/WorkoutBuilderSave", params=params, json=wo
+        "https://beta.finalsurge.com/api/Data", params=params, json=wo
     )
 
 
@@ -178,10 +180,11 @@ def remove_workout(wo_date: date) -> None:
         return
     logger.info(f"Deleting existing TrainAsPower workout `{wo_key}`")
     params = {
+        "request": "WorkoutDelete",
         "scope": "USER",
         "scopekey": user_key,
         "workout_key": wo_key,
     }
     response = finalsurge_session.get(
-        "https://beta.finalsurge.com/api/WorkoutDelete", params=params
+        "https://beta.finalsurge.com/api/Data", params=params
     )
