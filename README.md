@@ -38,7 +38,7 @@ midnight when your next workout will have been finalized by TaO.
 
 ## TrainAsOne Notes
 You should set your TrainAsOne account to not adjust pace for undulation, (under Profile->Workout Preferences.)
-You are running with power now, undulation is built in! You also need to make sure your 'pace format' is set to 'pace'. 
+You are running with power now, undulation is built in! You also need to make sure your 'pace format' is set to 'pace', and 'pace range' is turned on.
 
 ## Methodology
 - Pace ranges are converted using the [Stryd race calculator](https://www.stryd.com/powercenter/tools)
