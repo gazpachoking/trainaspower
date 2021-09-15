@@ -36,9 +36,11 @@ Run `echo $(poetry env info --path)/bin/trainaspower` to get the full path, whic
 Each execution will add the next workout to be completed, so it needs to be scheduled once a day, sometime after
 midnight when your next workout will have been finalized by TaO.
 
-## TrainAsOne Notes
-You should set your TrainAsOne account to not adjust pace for undulation, (under Profile->Workout Preferences.)
-You are running with power now, undulation is built in! You also need to make sure your 'pace format' is set to 'pace', and 'pace range' is turned on.
+## Requirements
+- You should set your TrainAsOne account to not adjust pace for undulation, (under Profile->Workout Preferences.)
+You are running with power now, undulation is built in!
+- Make sure your 'pace format' is set to 'pace', and 'pace range' is turned on in your TrainAsOne settings.
+- You need to have access to the [Stryd race calculator](https://www.stryd.com/powercenter/tools) and have enough runs recorded in Stryd for it to work. This calculator is now locked behind the Stryd subscription for new Stryd users. (Old Stryd users are grandfathered in.) Test the race calculator works from the Stryd website before using TrainAsPower.
 
 ## Methodology
 - Pace ranges are converted using the [Stryd race calculator](https://www.stryd.com/powercenter/tools)
