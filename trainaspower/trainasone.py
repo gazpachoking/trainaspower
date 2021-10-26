@@ -56,6 +56,20 @@ def get_next_workouts(config) -> Generator[models.Workout, None, None]:
         ) from exc
 
 
+def decode_cloudflare_email(encoded_email):
+    """
+    The workout id gets protected as if it was an email address by cloudflare. :eyeroll:
+    """
+    decoded = ""
+    chunks = [encoded_email[i:i+2] for i in range(0, len(encoded_email), 2)]
+    k = int(chunks[0], 16)
+
+    for chunk in chunks[1:]:
+        decoded += chr(int(chunk, 16) ^ k)
+
+    return decoded
+
+
 def get_workout(workout_url: str, date: datetime.date, config: models.Config) -> models.Workout:
     r = tao_session.get(workout_url)
     try:
@@ -64,7 +78,14 @@ def get_workout(workout_url: str, date: datetime.date, config: models.Config) ->
         w = models.Workout()
         w.date = date
         name = workout_html.find(".summary span", first=True).text
-        number = workout_html.find(".summary sup", first=True).text
+        number_element = workout_html.find(".summary sup", first=True)
+        cf_email = number_element.find(".__cf_email__", first=True)
+        if cf_email:
+            number = decode_cloudflare_email(cf_email.attrs['data-cfemail'])
+        else:
+            number = number_element.text
+        number = number.rstrip("@")
+
         w.duration = parse_duration(workout_html.find(".detail>span", first=True).text)
         w.distance = parse_distance(workout_html.find(".detail", first=True).text)
         w.id = number
