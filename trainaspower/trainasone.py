@@ -5,7 +5,7 @@ from typing import Generator
 import dateparser
 import requests_html
 from loguru import logger
-import json
+import re
 
 from . import models
 
@@ -91,10 +91,12 @@ def get_workout(workout_url: str, date: datetime.date, config: models.Config) ->
 
         workout_json = r.json()
         steps = workout_json["steps"]
-        name = workout_json["workoutName"].replace(r"â", "°C")
-        number = name.split(" ")[0]
+        title = workout_json["workoutName"]
+        m = re.match("^W([A-Z\d]+)@? (.*?[A-Za-z ]+)", title)
+        number = m.group(1)
+        name = m.group(2).strip()
         w.id = number
-        w.name = name
+        w.name = f"{number} {name}"
         logger.info("Converting TrainAsOne workout to power.")
         w.steps = list(convert_steps(
             steps, config, "Perceived Effort" in name))
