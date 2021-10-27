@@ -9,6 +9,7 @@ from pydantic import BaseModel
 ureg = UnitRegistry()
 mile = ureg.mile
 kilometer = ureg.kilometer
+meter = ureg.meter
 second = ureg.second
 minute = ureg.minute
 
