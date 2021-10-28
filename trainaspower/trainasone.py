@@ -75,8 +75,8 @@ def decode_cloudflare_email(encoded_email):
 def get_workout(workout_url: str, date: datetime.date, config: models.Config) -> models.Workout:
     workout_json_url = workout_url.replace(
         "plannedWorkout?", "plannedWorkoutDownload?sourceFormat=GARMIN_TRAINING&")
-    r = tao_session.get(workout_json_url, headers={
-                        'accept': 'application/json'})
+    r = tao_session.get(workout_json_url, headers={'Content-Type': 'application/json; charset=utf-8'})
+    r.encoding = r.apparent_encoding
     r_base = tao_session.get(workout_url)
     w = models.Workout()
     w.date = date
@@ -92,7 +92,7 @@ def get_workout(workout_url: str, date: datetime.date, config: models.Config) ->
         workout_json = r.json()
         steps = workout_json["steps"]
         title = workout_json["workoutName"]
-        m = re.match("^W([A-Z\d]+)@? (.*?[A-Za-z ]+)", title)
+        m = re.match("^W([A-Z\d]+)@? (.*)", title)
         number = m.group(1)
         name = m.group(2).strip()
         w.id = number
