@@ -144,7 +144,7 @@ def add_workout(workout: models.Workout) -> None:
     add_wo = finalsurge_session.post(
         "https://beta.finalsurge.com/api/WorkoutSave",
         params=params,
-        json={
+        data=json.dumps({
             "key": wo_key,
             "workout_date": workout.date.isoformat(),
             "order": 1,
@@ -158,7 +158,8 @@ def add_workout(workout: models.Workout) -> None:
                 "planned_amount_type": f"{workout.distance.units:~}",
                 "planned_duration": round(workout.duration.to("seconds").magnitude),
             },
-        },
+        }).encode("utf-8"),
+        headers={'Content-Type': 'application/json; charset=UTF-8'},
     )
     if not wo_key:
         wo_key = add_wo.json()["new_workout_key"]

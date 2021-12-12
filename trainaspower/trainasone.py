@@ -89,6 +89,7 @@ def get_workout(workout_url: str, date: datetime.date, config: models.Config) ->
         w.distance = parse_distance(
             workout_html.find(".detail", first=True).text)
 
+        r.encoding = 'utf-8'
         workout_json = r.json()
         steps = workout_json["steps"]
         title = workout_json["workoutName"]
@@ -97,6 +98,7 @@ def get_workout(workout_url: str, date: datetime.date, config: models.Config) ->
         name = m.group(2).strip()
         w.id = number
         w.name = f"{number} {name}"
+
         logger.info("Converting TrainAsOne workout to power.")
         w.steps = list(convert_steps(
             steps, config, "Perceived Effort" in name))
