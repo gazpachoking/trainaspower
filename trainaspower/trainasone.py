@@ -123,7 +123,7 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
             if step["intensity"] == "WARMUP":
                 out_step.type = "WARMUP"
             elif step["intensity"] == "ACTIVE":
-                if step["targetValueLow"] == 0.0:
+                if "targetValueLow" in step and step["targetValueLow"] == 0.0:
                     out_step.type = "REST"
                 else:
                     out_step.type = "ACTIVE"
@@ -145,7 +145,7 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
             try:
                 out_step.pace_range = parse_pace_range(
                     step["targetValueLow"], step["targetValueHigh"])
-            except ValueError:
+            except (ValueError, KeyError):
                 # 6 minute assessments, RECOVERY, COOLDOWN, and perceived effort segments do not have a pace
                 # Provide a generous power range based on %CP for slower ranges
                 if step["targetType"] == "OPEN":
