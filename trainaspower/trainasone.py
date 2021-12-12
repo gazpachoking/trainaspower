@@ -122,12 +122,12 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
 
             if step["intensity"] == "WARMUP":
                 out_step.type = "WARMUP"
-            elif step["intensity"] == "ACTIVE":
+            elif step["intensity"] == "ACTIVE" or step["intensity"] == "INTERVAL":
                 if "targetValueLow" in step and step["targetValueLow"] == 0.0:
                     out_step.type = "REST"
                 else:
                     out_step.type = "ACTIVE"
-            elif step["intensity"] == "RECOVERY":
+            elif step["intensity"] == "RECOVERY" or step["intensity"] == "REST":
                 out_step.type = "REST"
             elif step["intensity"] == "COOLDOWN":
                 out_step.type = "COOLDOWN"
