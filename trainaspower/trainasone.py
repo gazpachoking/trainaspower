@@ -110,6 +110,8 @@ def get_workout(workout_url: str, date: datetime.date, config: models.Config) ->
 
 
 def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Generator[models.Step, None, None]:
+    recovery_step_types = ["REST", "REOVERY", "COOLDOWN"]
+    active_step_types = ["ACTIVE", "INTERVAL"]
     for step in steps:
         if step["type"] == "WorkoutRepeatStep":
             times = int(step["repeatValue"])
@@ -124,15 +126,13 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
 
             if step["intensity"] == "WARMUP":
                 out_step.type = "WARMUP"
-            elif step["intensity"] == "ACTIVE" or step["intensity"] == "INTERVAL":
+            elif step["intensity"] in active_step_types:
                 if "targetValueLow" in step and step["targetValueLow"] == 0.0:
                     out_step.type = "REST"
                 else:
                     out_step.type = "ACTIVE"
-            elif step["intensity"] == "RECOVERY" or step["intensity"] == "REST":
+            elif step["intensity"] in recovery_step_types:
                 out_step.type = "REST"
-            elif step["intensity"] == "COOLDOWN":
-                out_step.type = "COOLDOWN"
 
             if step["durationType"] == "DISTANCE":
                 distance = step["durationValue"] * models.meter
@@ -165,10 +165,7 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
                         else:
                             # Standing
                             out_step.power_range = models.PowerRange(0, 50)
-                    elif step["intensity"] == "REST":
-                        out_step.power_range = models.PowerRange(
-                            0, get_critical_power() * 0.8)
-                    elif step["intensity"] == "COOLDOWN":
+                    elif step["intensity"] in recovery_step_types:
                         out_step.power_range = models.PowerRange(
                             0, get_critical_power() * 0.8)
                     else:
