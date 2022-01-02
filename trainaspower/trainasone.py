@@ -110,7 +110,7 @@ def get_workout(workout_url: str, date: datetime.date, config: models.Config) ->
 
 
 def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Generator[models.Step, None, None]:
-    recovery_step_types = ["REST", "REOVERY", "COOLDOWN"]
+    recovery_step_types = ["REST", "RECOVERY", "COOLDOWN"]
     active_step_types = ["ACTIVE", "INTERVAL"]
     for step in steps:
         if step["type"] == "WorkoutRepeatStep":
