@@ -5,6 +5,7 @@ from typing import Generator
 import dateparser
 import requests_html
 from loguru import logger
+import re
 
 from . import models
 
@@ -45,7 +46,8 @@ def get_next_workouts(config) -> Generator[models.Workout, None, None]:
         for day in upcoming:
             if day.find(".workout"):
                 date = dateparser.parse(day.find(".title", first=True).text)
-                workout_url = day.find(".workout a", first=True).absolute_links.pop()
+                workout_url = day.find(
+                    ".workout a", first=True).absolute_links.pop()
                 yield get_workout(workout_url, date, config)
                 found = True
         if not found:
@@ -71,27 +73,35 @@ def decode_cloudflare_email(encoded_email):
 
 
 def get_workout(workout_url: str, date: datetime.date, config: models.Config) -> models.Workout:
-    r = tao_session.get(workout_url)
-    try:
-        workout_html = r.html
-        steps = workout_html.find(".workoutSteps>ol>li")
-        w = models.Workout()
-        w.date = date
-        name = workout_html.find(".summary span", first=True).text
-        number_element = workout_html.find(".summary sup", first=True)
-        cf_email = number_element.find(".__cf_email__", first=True)
-        if cf_email:
-            number = decode_cloudflare_email(cf_email.attrs['data-cfemail'])
-        else:
-            number = number_element.text
-        number = number.rstrip("@")
+    workout_json_url = workout_url.replace(
+        "plannedWorkout?", "plannedWorkoutDownload?sourceFormat=GARMIN_TRAINING&")
+    r = tao_session.get(workout_json_url, headers={'Content-Type': 'application/json; charset=utf-8'})
+    r.encoding = r.apparent_encoding
+    r_base = tao_session.get(workout_url)
+    w = models.Workout()
+    w.date = date
 
-        w.duration = parse_duration(workout_html.find(".detail>span", first=True).text)
-        w.distance = parse_distance(workout_html.find(".detail", first=True).text)
+    try:
+        # Fetch the duration and distance from TAO
+        workout_html = r_base.html
+        w.duration = parse_duration(
+            workout_html.find(".detail>span", first=True).text)
+        w.distance = parse_distance(
+            workout_html.find(".detail", first=True).text)
+
+        r.encoding = 'utf-8'
+        workout_json = r.json()
+        steps = workout_json["steps"]
+        title = workout_json["workoutName"]
+        m = re.match("^W([A-Z\d]+)@? (.*)", title)
+        number = m.group(1)
+        name = m.group(2).strip()
         w.id = number
         w.name = f"{number} {name}"
+
         logger.info("Converting TrainAsOne workout to power.")
-        w.steps = list(convert_steps(steps, config))
+        w.steps = list(convert_steps(
+            steps, config, "Perceived Effort" in name))
         return w
     except Exception as exc:
         raise FindWorkoutException(
@@ -99,93 +109,74 @@ def get_workout(workout_url: str, date: datetime.date, config: models.Config) ->
         ) from exc
 
 
-def convert_steps(steps, config: models.Config) -> Generator[models.Step, None, None]:
-    for index, step in enumerate(steps):
-        if step.find("ol"):
-            times_match = re.search(r" (\d+) times", step.text)
-            if times_match:
-                times = int(times_match.group(1))
-            else:
-                times = 1
+def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Generator[models.Step, None, None]:
+    recovery_step_types = ["REST", "RECOVERY", "COOLDOWN"]
+    active_step_types = ["ACTIVE", "INTERVAL"]
+    for step in steps:
+        if step["type"] == "WorkoutRepeatStep":
+            times = int(step["repeatValue"])
             out_step = models.RepeatStep(times)
-            out_step.steps = list(convert_steps(step.find("ol>li"), config))
-            out_step.steps[0].type = "REST"
+            repeat_steps = list(convert_steps(
+                step["steps"], config, perceived_effort))
+            out_step.steps = repeat_steps
         else:
             out_step = models.ConcreteStep()
-            out_step.description = step.text
+            if "description" in step:
+                out_step.description = step["description"]
 
-            if "pace-VERY_EASY" in step.attrs["class"]:
-                if index < 2:
-                    out_step.type = "WARMUP"
-                else:
+            if step["intensity"] == "WARMUP":
+                out_step.type = "WARMUP"
+            elif step["intensity"] in active_step_types:
+                if "targetValueLow" in step and step["targetValueLow"] == 0.0:
                     out_step.type = "REST"
-            elif any(
-                t in step.attrs["class"] for t in ["pace-RECOVERY", "pace-STANDING"]
-            ):
+                else:
+                    out_step.type = "ACTIVE"
+            elif step["intensity"] in recovery_step_types:
                 out_step.type = "REST"
-            else:
-                out_step.type = "ACTIVE"
 
-            try:
-                out_step.length = parse_duration(step.text)
-            except ValueError:
-                # 3.2km assessments are the only steps that do not have a duration
-                distance = parse_distance(step.text)
-                out_step.power_range = suggested_power_range_for_distance(distance)
+            if step["durationType"] == "DISTANCE":
+                distance = step["durationValue"] * models.meter
+                out_step.power_range = suggested_power_range_for_distance(
+                    distance)
                 out_step.length = distance
                 yield out_step
                 continue
+            else:
+                out_step.length = step["durationValue"] * models.second
 
             try:
-                out_step.pace_range = parse_pace_range(step.text)
-            except ValueError:
-                # 6 minute assessments, RECOVERY, and perceived effort segments do not have a pace
+                out_step.pace_range = parse_pace_range(
+                    step["targetValueLow"], step["targetValueHigh"])
+            except (ValueError, KeyError):
+                # 6 minute assessments, RECOVERY, COOLDOWN, and perceived effort segments do not have a pace
                 # Provide a generous power range based on %CP for slower ranges
-                if "pace-RECOVERY" in step.attrs["class"]:
-                    out_step.power_range = models.PowerRange(0, get_critical_power() * 0.8)
-                elif "pace-EXTREME" in step.attrs["class"]:
-                    out_step.power_range = suggested_power_range_for_time(
-                        out_step.length
-                    )
-                elif "pace-VERY_EASY" in step.attrs["class"]:
-                    # Perceived effort warmup
-                    cp = get_critical_power()
-                    out_step.power_range = models.PowerRange(cp * 0.3, cp * 0.8)
-                elif "pace-EASY" in step.attrs["class"]:
-                    # Perceived effort main body
-                    cp = get_critical_power()
-                    out_step.power_range = models.PowerRange(cp * 0.55, cp * 0.9)
-
+                if step["targetType"] == "OPEN":
+                    if perceived_effort:
+                        if step["stepOrder"] == 2:
+                            # Perceived effort warmup
+                            cp = get_critical_power()
+                            out_step.power_range = models.PowerRange(
+                                cp * 0.3, cp * 0.8)
+                        elif step["stepOrder"] == 3:
+                            # Perceived effort main body
+                            cp = get_critical_power()
+                            out_step.power_range = models.PowerRange(
+                                cp * 0.55, cp * 0.9)
+                        else:
+                            # Standing
+                            out_step.power_range = models.PowerRange(0, 50)
+                    elif step["intensity"] in recovery_step_types:
+                        out_step.power_range = models.PowerRange(
+                            0, get_critical_power() * 0.8)
+                    else:
+                        out_step.power_range = suggested_power_range_for_time(
+                            out_step.length)
+                else:
+                    raise ValueError(
+                        "Failed to parse pace_range for step without an OPEN target.")
             else:
-                out_step.power_range = convert_pace_range_to_power(out_step.pace_range)
-
-            if "pace-VERY_EASY" in step.attrs["class"]:
-                out_step.power_range = models.PowerRange(
-                    out_step.power_range.min + config.very_easy_pace_adjust[0],
-                    out_step.power_range.max + config.very_easy_pace_adjust[1],
-                )
-            elif "pace-EASY" in step.attrs["class"]:
-                out_step.power_range = models.PowerRange(
-                    out_step.power_range.min + config.easy_pace_adjust[0],
-                    out_step.power_range.max + config.easy_pace_adjust[1],
-                )
-            elif "pace-RECOVERY" in step.attrs["class"]:
-                out_step.power_range = models.PowerRange(
-                    out_step.power_range.min + config.recovery_pace_adjust[0],
-                    out_step.power_range.max + config.recovery_pace_adjust[1],
-                )
-            elif "pace-FAST" in step.attrs["class"]:
-                out_step.power_range = models.PowerRange(
-                    out_step.power_range.min + config.fast_pace_adjust[0],
-                    out_step.power_range.max + config.fast_pace_adjust[1],
-                )
-            elif "pace-EXTREME" in step.attrs["class"]:
-                out_step.power_range = models.PowerRange(
-                    out_step.power_range.min + config.extreme_pace_adjust[0],
-                    out_step.power_range.max + config.extreme_pace_adjust[1],
-                )
-            elif "pace-STANDING" in step.attrs["class"]:
-                out_step.power_range = models.PowerRange(0, 50)
+                out_step.power_range = convert_pace_range_to_power(
+                    out_step.pace_range)
 
         yield out_step
 
@@ -195,22 +186,11 @@ def parse_time(pace_string: str) -> models.Quantity:
     return min * models.minute + sec * models.second
 
 
-def parse_pace_range(step_string: str) -> models.PaceRange:
-    range_match = re.search(r"\[(.*)\]", step_string)
-    if not range_match:
-        raise ValueError(f"Could not find pace range in `{step_string}`")
-    range_string = range_match.group(1).strip()
-    length = models.mile
-    if range_string.endswith("km"):
-        length = models.kilometer
-    range_string = range_string[:-4]
-    min, max = range_string.split("-")
-    if range_string.startswith(">"):
-        max = parse_time(max) / length
-        min = models.ureg.Quantity(0, units=models.second / length)
-    else:
-        min, max = parse_time(min) / length, parse_time(max) / length
-    return models.PaceRange(min, max)
+def parse_pace_range(min_provided: float, max_provided: float) -> models.PaceRange:
+    min = 0.0
+    if min_provided != 0.0:
+        min = (1 / min_provided)
+    return models.PaceRange(min * models.second / models.meter, (1 / max_provided) * models.second / models.meter)
 
 
 def parse_distance(text: str) -> models.Quantity:

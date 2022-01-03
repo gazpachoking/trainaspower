@@ -26,6 +26,7 @@ def setup_logging():
         rotation="3 days",
         retention="6 days",
         diagnose=True,
+        encoding="utf-8"
     )
 
 
