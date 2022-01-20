@@ -75,7 +75,8 @@ def decode_cloudflare_email(encoded_email):
 def get_workout(workout_url: str, date: datetime.date, config: models.Config) -> models.Workout:
     workout_json_url = workout_url.replace(
         "plannedWorkout?", "plannedWorkoutDownload?sourceFormat=GARMIN_TRAINING&")
-    r = tao_session.get(workout_json_url, headers={'Content-Type': 'application/json; charset=utf-8'})
+    r = tao_session.get(workout_json_url, headers={
+                        'Content-Type': 'application/json; charset=utf-8'})
     r.encoding = r.apparent_encoding
     r_base = tao_session.get(workout_url)
     w = models.Workout()
@@ -135,12 +136,8 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
                 out_step.type = "REST"
 
             if step["durationType"] == "DISTANCE":
-                distance = step["durationValue"] * models.meter
-                out_step.power_range = suggested_power_range_for_distance(
-                    distance)
-                out_step.length = distance
-                yield out_step
-                continue
+                out_step.length = round(
+                    step["durationValue"]) * models.meter
             else:
                 out_step.length = step["durationValue"] * models.second
 
@@ -169,8 +166,12 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
                         out_step.power_range = models.PowerRange(
                             0, get_critical_power() * 0.8)
                     else:
-                        out_step.power_range = suggested_power_range_for_time(
-                            out_step.length)
+                        if step["durationType"] == "DISTANCE":
+                            out_step.power_range = suggested_power_range_for_distance(
+                                out_step.length)
+                        else:
+                            out_step.power_range = suggested_power_range_for_time(
+                                out_step.length)
                 else:
                     raise ValueError(
                         "Failed to parse pace_range for step without an OPEN target.")
