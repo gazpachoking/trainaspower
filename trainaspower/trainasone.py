@@ -113,6 +113,7 @@ def get_workout(workout_url: str, date: datetime.date, config: models.Config) ->
 def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Generator[models.Step, None, None]:
     recovery_step_types = ["REST", "RECOVERY", "COOLDOWN"]
     active_step_types = ["ACTIVE", "INTERVAL"]
+    valid_target_types = ["OPEN", "SPEED"]
     for step in steps:
         if step["type"] == "WorkoutRepeatStep":
             times = int(step["repeatValue"])
@@ -124,6 +125,10 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
             out_step = models.ConcreteStep()
             if "description" in step:
                 out_step.description = step["description"]
+
+            if not step["targetType"] in valid_target_types:
+                raise ValueError(
+                    f"Unsupported target type {step['targetType']}. Please ensure that you have selected speed as \"Workout step target\" in the TAO settings under \"Garmin workout preferences\"")
 
             if step["intensity"] == "WARMUP":
                 out_step.type = "WARMUP"
