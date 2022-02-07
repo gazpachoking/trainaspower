@@ -1,10 +1,11 @@
+import builtins
 import datetime
 from dataclasses import dataclass
-from typing import List, NamedTuple, Union, Tuple
+from typing import List, NamedTuple, Union, Tuple, Any
 
+from loguru import logger
 from pint import UnitRegistry, Quantity
-from pydantic import BaseModel
-
+from pydantic import BaseModel, Field, validator
 
 ureg = UnitRegistry()
 mile = ureg.mile
@@ -21,12 +22,24 @@ class Config(BaseModel):
     trainasone_password: str
     finalsurge_email: str
     finalsurge_password: str
-    recovery_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
-    very_easy_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
-    easy_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
-    fast_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
-    extreme_pace_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
+    power_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
     number_of_workouts: int = 1
+    # Old config values
+    recovery_pace_adjust: Any = Field(removed='Field `power_adjust` has been added instead')
+    very_easy_pace_adjust: Any = Field(removed='Field `power_adjust` has been added instead')
+    easy_pace_adjust: Any = Field(removed='Field `power_adjust` has been added instead')
+    fast_pace_adjust: Any = Field(removed='Field `power_adjust` has been added instead')
+    extreme_pace_adjust: Any = Field(removed='Field `power_adjust` has been added instead.')
+
+    @validator('*')
+    def warn_removed(cls, v, field):
+        removed = field.field_info.extra.get('removed')
+        if removed:
+            message = f'Config field `{field.name}` was removed.'
+            if isinstance(removed, str):
+                message += f' {removed}'
+            logger.warning(message)
+        return v
 
     class Config:
         extra = 'forbid'
@@ -40,6 +53,14 @@ class PowerRange:
     def __init__(self, min_val, max_val):
         self.min = max(0, min_val)
         self.max = max_val
+
+    def __add__(self, other):
+        new = PowerRange(self.min, self.max)
+        if not len(other) == 2:
+            raise ValueError(f'Cannot add {repr(other)} to PowerRange')
+        new.min = builtins.max(0, self.min + other[0])
+        new.max += other[1]
+        return new
 
 
 class PaceRange(NamedTuple):

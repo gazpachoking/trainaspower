@@ -4,9 +4,5 @@ trainasone_email: my@email.com
 trainasone_password: my_password
 finalsurge_email: my@email.com
 finalsurge_password: my_password
-recovery_pace_adjust: [0, 0]
-very_easy_pace_adjust: [0, 0]
-easy_pace_adjust: [0, 0]
-fast_pace_adjust: [0, 0]
-extreme_pace_adjust: [0, 0]
+power_adjust: [0, 0]
 number_of_workouts: 1

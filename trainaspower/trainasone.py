@@ -183,6 +183,8 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
             else:
                 out_step.power_range = convert_pace_range_to_power(
                     out_step.pace_range)
+            # Add adjustment from config
+            out_step.power_range += config.power_adjust
 
         yield out_step
 
