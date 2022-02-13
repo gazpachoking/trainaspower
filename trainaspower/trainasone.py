@@ -94,9 +94,7 @@ def get_workout(workout_url: str, date: datetime.date, config: models.Config) ->
         workout_json = r.json()
         steps = workout_json["steps"]
         title = workout_json["workoutName"]
-        m = re.match("^W([A-Z\d]+)@? (.*)", title)
-        number = m.group(1)
-        name = m.group(2).strip()
+        number, name = title.split(' ', maxsplit=1)
         w.id = number
         w.name = f"{number} {name}"
 
