@@ -9,17 +9,15 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
         with:
           python-version: 3.9
-      - uses: Gr1N/setup-poetry@v4
-      - uses: actions/cache@v2
+      - uses: Gr1N/setup-poetry@v7
+      - uses: actions/cache@v3
         with:
           path: ~/.cache/pypoetry/virtualenvs
           key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-
       - name: Install dependencies
         run: poetry install
       - name: Build with Pyinstaller
