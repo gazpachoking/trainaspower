@@ -1,5 +1,4 @@
 import datetime
-import re
 from typing import Generator
 
 import dateparser
@@ -128,8 +127,8 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
                 raise ValueError(
                     f"Unsupported target type {step['targetType']}. Please ensure that you have selected speed as \"Workout step target\" in the TAO settings under \"Garmin workout preferences\"")
 
-            if step["intensity"] == "WARMUP":
-                out_step.type = "WARMUP"
+            if step["intensity"] in ["WARMUP", "COOLDOWN"]:
+                out_step.type = step["intensity"]
             elif step["intensity"] in active_step_types:
                 if "targetValueLow" in step and step["targetValueLow"] == 0.0:
                     out_step.type = "REST"
@@ -141,6 +140,9 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
             if step["durationType"] == "DISTANCE":
                 out_step.length = round(
                     step["durationValue"]) * models.meter
+            elif step["durationType"] == "OPEN":
+                # Runback step
+                out_step.length = None
             else:
                 out_step.length = step["durationValue"] * models.second
 

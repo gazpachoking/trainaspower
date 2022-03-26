@@ -58,20 +58,25 @@ def convert_step(step: models.Step, id_counter) -> dict:
         return convert_repeat(step, id_counter)
     if not isinstance(step, models.ConcreteStep):
         raise ValueError(f"unknown step type received {step.type}")
-    s = {
+    if step.length is None:
+        s = {"durationType": "OPEN"}
+    elif step.length.check("[time]"):
+        s = {
+            "durationType": "TIME",
+            "duration": str(timedelta(seconds=step.length.to("seconds").magnitude)),
+        }
+    else:
+        s = {
+            "durationType": "DISTANCE",
+            "durationDist": step.length.magnitude,
+            "distUnit": f"{step.length.units:~}",
+        }
+    s.update({
         "type": "step",
         "id": next(id_counter),
         "name": None,
-        "durationType": "TIME" if step.length.check("[time]") else "DISTANCE",
-        "duration": (
-            str(timedelta(seconds=step.length.to("seconds").magnitude))
-            if step.length.check("[time]")
-            else 0
-        ),
         "targetAbsOrPct": "",
-        "durationDist": 0 if step.length.check("[time]") else step.length.magnitude,
         "data": [],
-        "distUnit": f"{step.length.units:~}" if step.length.check("[length]") else "mi",
         "target": [
             {
                 "targetType": "power",
@@ -94,7 +99,7 @@ def convert_step(step: models.Step, id_counter) -> dict:
         ],
         "intensity": step.type,
         "comments": None,
-    }
+    })
     return s
 
 

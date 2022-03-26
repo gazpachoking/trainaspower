@@ -1,7 +1,7 @@
 import builtins
 import datetime
 from dataclasses import dataclass
-from typing import List, NamedTuple, Union, Tuple, Any
+from typing import List, NamedTuple, Union, Tuple, Any, Optional
 
 from loguru import logger
 from pint import UnitRegistry, Quantity
@@ -86,7 +86,7 @@ class Step:
 class ConcreteStep(Step):
     power_range: PowerRange
     pace_range: PaceRange
-    length: Quantity
+    length: Optional[Quantity]
 
 
 class RepeatStep(Step):
