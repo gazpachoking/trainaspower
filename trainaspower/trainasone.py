@@ -159,7 +159,7 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
                             cp = get_critical_power()
                             out_step.power_range = models.PowerRange(
                                 cp * 0.3, cp * 0.8)
-                        elif step["stepOrder"] == 3:
+                        elif step["stepOrder"] == 3 and step["intensity"] not in recovery_step_types:
                             # Perceived effort main body
                             cp = get_critical_power()
                             out_step.power_range = models.PowerRange(

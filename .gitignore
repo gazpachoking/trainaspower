@@ -1,0 +1,11 @@
+# Jetbrains
+.idea
+modules/
+*.swp
+
+# Config
+config.yaml
+
+# Generated files
+*.log
+taocalendar.html
