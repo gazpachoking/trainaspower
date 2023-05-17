@@ -154,29 +154,21 @@ def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Gener
                 # Provide a generous power range based on %CP for slower ranges
                 if step["targetType"] == "OPEN":
                     if perceived_effort:
-                        if len(steps) == 3:
-                            if step["stepOrder"] == 2:
-                                # Perceived effort main body
-                                cp = get_critical_power()
-                                out_step.power_range = models.PowerRange(
-                                    cp * 0.55, cp * 0.9)
-                            else:
-                                # Standing
-                                out_step.power_range = models.PowerRange(0, 50)
+                        # Some perceived effort workouts have a warmup
+                        if len(steps) > 3 and step["stepOrder"] == 2:
+                            # Perceived effort warmup
+                            cp = get_critical_power()
+                            out_step.power_range = models.PowerRange(
+                                cp * 0.3, cp * 0.8)
+                        # Penultimate step is always the main effort
+                        elif step["stepOrder"] == len(steps)-1:
+                            # Perceived effort main body
+                            cp = get_critical_power()
+                            out_step.power_range = models.PowerRange(
+                                cp * 0.55, cp * 0.9)
                         else:
-                            if step["stepOrder"] == 2:
-                                # Perceived effort warmup
-                                cp = get_critical_power()
-                                out_step.power_range = models.PowerRange(
-                                    cp * 0.3, cp * 0.8)
-                            elif step["stepOrder"] == 3:
-                                # Perceived effort main body
-                                cp = get_critical_power()
-                                out_step.power_range = models.PowerRange(
-                                    cp * 0.55, cp * 0.9)
-                            else:
-                                # Standing
-                                out_step.power_range = models.PowerRange(0, 50)
+                            # Perceived effort workouts start and end with a standing step
+                            out_step.power_range = models.PowerRange(0, 50)
                     elif step["intensity"] in recovery_step_types:
                         out_step.power_range = models.PowerRange(
                             0, get_critical_power() * 0.8)
