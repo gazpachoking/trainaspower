@@ -204,7 +204,7 @@ def parse_pace_range(min_provided: float, max_provided: float) -> models.PaceRan
 
 
 def parse_distance(text: str) -> models.Quantity:
-    match = re.search(r"\(~?([\d.]+ (mi|km))\)", text)
+    match = re.search(r"\(~?([\d.]+ (mi|k?m))\)", text)
     if not match:
         raise ValueError(f"No distance found in `{text}`")
     return models.ureg.parse_expression(match.group(1))
