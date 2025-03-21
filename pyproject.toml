@@ -15,6 +15,7 @@ PyYAML = "^6.0"
 loguru = "^0.6.0"
 Pint = "^0.18"
 pydantic = "^1.9"
+fitparse = "^1.2.0"
 
 [tool.poetry.dev-dependencies]
 pyinstaller = "^6.12"
