@@ -6,8 +6,9 @@ authors = ["Chase Sterling <chase.sterling@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.8,<3.11"
+python = "^3.8,<3.14"
 requests = "^2.27"
+lxml-html-clean = "^0.4.1"
 requests-html = "^0.10.0"
 dateparser = "^1.1.1"
 PyYAML = "^6.0"
@@ -16,7 +17,7 @@ Pint = "^0.18"
 pydantic = "^1.9"
 
 [tool.poetry.dev-dependencies]
-pyinstaller = "^4.10"
+pyinstaller = "^6.12"
 
 [tool.poetry.scripts]
 trainaspower = "trainaspower.main:main"
