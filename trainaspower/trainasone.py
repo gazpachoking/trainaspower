@@ -1,7 +1,7 @@
 import datetime
-from itertools import compress
 import re
 from collections.abc import Generator
+from itertools import compress
 
 import dateparser
 import requests_html
@@ -161,7 +161,7 @@ def convert_step_type(step: dict) -> str:
     return "REST"
 
 
-def convert_step_length(step: dict) -> str:
+def convert_step_length(step: dict) -> str | None:
     if step["duration_type"] == "distance":
         return round(step["duration_distance"]) * models.meter
 
@@ -177,7 +177,7 @@ def convert_step_target(
     out_step: models.ConcreteStep,
     perceived_effort: bool,
     num_steps: int,
-) -> str:
+) -> tuple[models.PaceRange | None, models.PowerRange | None]:
     if step["target_type"] == "speed":
         pace_range = parse_pace_range(
             step["custom_target_speed_low"],
@@ -225,6 +225,16 @@ def convert_step_target(
     raise ValueError(msg)
 
 
+def convert_step_target_pace(step: dict) -> models.PaceRange | None:
+    if step["target_type"] == "speed":
+        return parse_pace_range(
+            step["custom_target_speed_low"],
+            step["custom_target_speed_high"],
+        )
+
+    return None
+
+
 def convert_steps(
     steps: list[dict],
     config: models.Config,
@@ -248,15 +258,18 @@ def convert_steps(
             out_step.description = step["notes"]
             out_step.type = convert_step_type(step)
             out_step.length = convert_step_length(step)
-            out_step.pace_range, out_step.power_range = convert_step_target(
-                step,
-                out_step,
-                perceived_effort,
-                len(steps),
-            )
-
-            # Add adjustment from config
-            out_step.power_range += config.power_adjust
+            if config.pace_only:
+                out_step.power_range = None
+                out_step.pace_range = convert_step_target_pace(step)
+            else:
+                out_step.pace_range, out_step.power_range = convert_step_target(
+                    step,
+                    out_step,
+                    perceived_effort,
+                    len(steps),
+                )
+                # Add adjustment from config
+                out_step.power_range += config.power_adjust
 
         valid_step.append(True)
         steps_out.append(out_step)

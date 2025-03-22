@@ -25,6 +25,7 @@ class Config(BaseModel):
     power_adjust: Tuple[Union[float, int], Union[float, int]] = (0, 0)
     number_of_workouts: int = 1
     include_runback_step: bool = False
+    pace_only: bool = False
     # Old config values
     recovery_pace_adjust: Any = Field(removed='Field `power_adjust` has been added instead')
     very_easy_pace_adjust: Any = Field(removed='Field `power_adjust` has been added instead')
