@@ -1,18 +1,19 @@
 import datetime
-from typing import Generator
+import re
+from collections.abc import Generator
+from itertools import compress
 
 import dateparser
 import requests_html
+from fitparse import FitFile
 from loguru import logger
-import re
 
 from . import models
-
 from .stryd import (
     convert_pace_range_to_power,
+    get_critical_power,
     suggested_power_range_for_distance,
     suggested_power_range_for_time,
-    get_critical_power,
 )
 
 tao_session = requests_html.HTMLSession()
@@ -44,9 +45,10 @@ def get_next_workouts(config) -> Generator[models.Workout, None, None]:
         upcoming = r.html.find(".today, .future")
         for day in upcoming:
             if day.find(".workout"):
-                date = dateparser.parse(day.find(".title", first=True).text.splitlines()[-1])
-                workout_url = day.find(
-                    ".workout a", first=True).absolute_links.pop()
+                date = dateparser.parse(
+                    day.find(".title", first=True).text.splitlines()[-1]
+                )
+                workout_url = day.find(".workout a", first=True).absolute_links.pop()
                 yield get_workout(workout_url, date, config)
                 found = True
         if not found:
@@ -62,7 +64,7 @@ def decode_cloudflare_email(encoded_email):
     The workout id gets protected as if it was an email address by cloudflare. :eyeroll:
     """
     decoded = ""
-    chunks = [encoded_email[i:i+2] for i in range(0, len(encoded_email), 2)]
+    chunks = [encoded_email[i : i + 2] for i in range(0, len(encoded_email), 2)]
     k = int(chunks[0], 16)
 
     for chunk in chunks[1:]:
@@ -71,12 +73,56 @@ def decode_cloudflare_email(encoded_email):
     return decoded
 
 
-def get_workout(workout_url: str, date: datetime.date, config: models.Config) -> models.Workout:
-    workout_json_url = workout_url.replace(
-        "plannedWorkout?", "plannedWorkoutDownload?sourceFormat=GARMIN_TRAINING&")
-    r = tao_session.get(workout_json_url, headers={
-                        'Content-Type': 'application/json; charset=utf-8'})
-    r.encoding = r.apparent_encoding
+def fit_to_dict(records: dict) -> dict:
+    return {r["name"]: r["value"] for r in records["fields"]}
+
+
+def fit_get_workout_name(fit_file: FitFile) -> str:
+    return next(
+        filter(
+            lambda x: x["name"] == "wkt_name",
+            next(fit_file.get_messages("workout", as_dict=True))["fields"],
+        ),
+    )["value"]
+
+
+def fit_get_workout_steps(fit_file: FitFile) -> list[dict]:
+    steps = [
+        fit_to_dict(step)
+        for step in fit_file.get_messages("workout_step", as_dict=True)
+    ]
+    steps.sort(key=lambda x: x["message_index"])
+    return steps
+
+
+def get_workout(
+    workout_url: str,
+    date: datetime.date,
+    config: models.Config,
+) -> models.Workout:
+    workout_id = re.search(r"workoutId=([^&]+)", workout_url).group(1)
+    workout_download_url = "https://beta.trainasone.com/plannedWorkoutDownload"
+    r = tao_session.post(
+        workout_download_url,
+        data={
+            "workoutId": workout_id,
+            "temperature": "",
+            "undulation": "",
+            "sourceFormat": "FIT",
+            "includeRunBackStep": config.include_runback_step,
+            "_includeRunBackStep": "on",
+            "workoutStepEnd": "DURATION",
+            "workoutStepName": "STEP_NAME",
+            "workoutSlowStepTarget": "SPEED",
+            "workoutEasyStepTarget": "SPEED",
+            "workoutFastStepTarget": "SPEED",
+        },
+    )
+
+    fit_file = FitFile(r.content)
+    workout_name = fit_get_workout_name(fit_file)
+    workout_steps = fit_get_workout_steps(fit_file)
+
     r_base = tao_session.get(workout_url)
     w = models.Workout()
     w.date = date
@@ -84,22 +130,17 @@ def get_workout(workout_url: str, date: datetime.date, config: models.Config) ->
     try:
         # Fetch the duration and distance from TAO
         workout_html = r_base.html
-        w.duration = parse_duration(
-            workout_html.find(".detail>span", first=True).text)
-        w.distance = parse_distance(
-            workout_html.find(".detail", first=True).text)
+        w.duration = parse_duration(workout_html.find(".detail>span", first=True).text)
+        w.distance = parse_distance(workout_html.find(".detail", first=True).text)
 
-        r.encoding = 'utf-8'
-        workout_json = r.json()
-        steps = workout_json["steps"]
-        title = workout_json["workoutName"]
-        number, name = title.split(' ', maxsplit=1)
+        steps = workout_steps
+        title = workout_name
+        number, name = title.split(" ", maxsplit=1)
         w.id = number
-        w.name = f"{number} {name}"
+        w.name = title
 
         logger.info("Converting TrainAsOne workout to power.")
-        w.steps = list(convert_steps(
-            steps, config, "Perceived Effort" in name))
+        w.steps = convert_steps(steps, config, "Perceived Effort" in name)
         return w
     except Exception as exc:
         raise FindWorkoutException(
@@ -107,100 +148,149 @@ def get_workout(workout_url: str, date: datetime.date, config: models.Config) ->
         ) from exc
 
 
-def convert_steps(steps, config: models.Config, perceived_effort: bool) -> Generator[models.Step, None, None]:
-    recovery_step_types = ["REST", "RECOVERY", "COOLDOWN"]
-    active_step_types = ["ACTIVE", "INTERVAL"]
-    valid_target_types = ["OPEN", "SPEED"]
+def convert_step_type(step: dict) -> str:
+    if step["intensity"] in ["warmup", "cooldown"]:
+        return step["intensity"].upper()
+
+    if step["intensity"] == "active" and step["wkt_step_name"] == "Preparation":
+        return "REST"
+
+    if step["intensity"] == "active":
+        return "ACTIVE"
+
+    return "REST"
+
+
+def convert_step_length(step: dict) -> str | None:
+    if step["duration_type"] == "distance":
+        return round(step["duration_distance"]) * models.meter
+
+    if step["duration_type"] == "open":
+        # Runback step
+        return None
+
+    return step["duration_time"] * models.second
+
+
+def convert_step_target(
+    step: dict,
+    out_step: models.ConcreteStep,
+    perceived_effort: bool,
+    num_steps: int,
+) -> tuple[models.PaceRange | None, models.PowerRange | None]:
+    if step["target_type"] == "speed":
+        pace_range = parse_pace_range(
+            step["custom_target_speed_low"],
+            step["custom_target_speed_high"],
+        )
+        power_range = convert_pace_range_to_power(pace_range)
+        return pace_range, power_range
+
+    # 6 minute assessments, RECOVERY, COOLDOWN, and perceived effort segments do not have a pace
+    # Provide a generous power range based on %CP for slower ranges
+    if step["target_type"] == "open":
+        cp = get_critical_power()
+        if perceived_effort:
+            # Some perceived effort workouts have a warmup
+            if num_steps > 3 and step["message_index"] == 1:
+                # Perceived effort warmup
+                return None, models.PowerRange(cp * 0.3, cp * 0.8)
+            # Penultimate step is always the main effort
+            if step["message_index"] == num_steps - 1:
+                # Perceived effort main body
+                return None, models.PowerRange(
+                    cp * 0.55,
+                    cp * 0.9,
+                )
+            # Perceived effort workouts start and end with a standing step
+            return None, models.PowerRange(0, 50)
+
+        # Recovery steps after hard assessments
+        if step["wkt_step_name"] in ["Recovery", "Preparation"]:
+            return None, models.PowerRange(0, cp * 0.9)
+
+        if step["duration_type"] == "distance":
+            return None, suggested_power_range_for_distance(out_step.length)
+
+        if step["duration_type"] == "time":
+            return None, suggested_power_range_for_time(out_step.length)
+
+        # Run back step has no target. Add a wide power range.
+        return None, models.PowerRange(
+            cp * 0.55,
+            cp * 0.9,
+        )
+
+    msg = f"Unknown target type {step['target_type']}"
+    raise ValueError(msg)
+
+
+def convert_step_target_pace(step: dict) -> models.PaceRange | None:
+    if step["target_type"] == "speed":
+        return parse_pace_range(
+            step["custom_target_speed_low"],
+            step["custom_target_speed_high"],
+        )
+
+    return None
+
+
+def convert_steps(
+    steps: list[dict],
+    config: models.Config,
+    perceived_effort: bool,
+) -> list[models.Step]:
+    steps_out = []
+    valid_step = []
     for step in steps:
-        if step["type"] == "WorkoutRepeatStep":
-            times = int(step["repeatValue"])
+        # This does not support nested repeat steps
+        if step["duration_type"] == "repeat_until_steps_cmplt":
+            times = step["repeat_steps"]
             out_step = models.RepeatStep(times)
-            repeat_steps = list(convert_steps(
-                step["steps"], config, perceived_effort))
-            out_step.steps = repeat_steps
+            out_step.steps = steps_out[
+                step["duration_step"] : step["message_index"] + 1
+            ].copy()
+            valid_step[step["duration_step"] : step["message_index"] + 1] = [
+                False,
+            ] * (step["message_index"] - step["duration_step"])
         else:
             out_step = models.ConcreteStep()
-            if "description" in step:
-                out_step.description = step["description"]
-
-            if not step["targetType"] in valid_target_types:
-                raise ValueError(
-                    f"Unsupported target type {step['targetType']}. Please ensure that you have selected speed as \"Workout step target\" in the TAO settings under \"Garmin workout preferences\"")
-
-            if step["intensity"] in ["WARMUP", "COOLDOWN"]:
-                out_step.type = step["intensity"]
-            elif step["intensity"] in active_step_types:
-                if "targetValueLow" in step and step["targetValueLow"] == 0.0:
-                    out_step.type = "REST"
-                else:
-                    out_step.type = "ACTIVE"
-            elif step["intensity"] in recovery_step_types:
-                out_step.type = "REST"
-
-            if step["durationType"] == "DISTANCE":
-                out_step.length = round(
-                    step["durationValue"]) * models.meter
-            elif step["durationType"] == "OPEN":
-                # Runback step
-                out_step.length = None
+            out_step.description = step["notes"]
+            out_step.type = convert_step_type(step)
+            out_step.length = convert_step_length(step)
+            if config.pace_only:
+                out_step.power_range = None
+                out_step.pace_range = convert_step_target_pace(step)
             else:
-                out_step.length = step["durationValue"] * models.second
+                out_step.pace_range, out_step.power_range = convert_step_target(
+                    step,
+                    out_step,
+                    perceived_effort,
+                    len(steps),
+                )
+                # Add adjustment from config
+                out_step.power_range += config.power_adjust
 
-            try:
-                out_step.pace_range = parse_pace_range(
-                    step["targetValueLow"], step["targetValueHigh"])
-            except (ValueError, KeyError):
-                # 6 minute assessments, RECOVERY, COOLDOWN, and perceived effort segments do not have a pace
-                # Provide a generous power range based on %CP for slower ranges
-                if step["targetType"] == "OPEN":
-                    if perceived_effort:
-                        # Some perceived effort workouts have a warmup
-                        if len(steps) > 3 and step["stepOrder"] == 2:
-                            # Perceived effort warmup
-                            cp = get_critical_power()
-                            out_step.power_range = models.PowerRange(
-                                cp * 0.3, cp * 0.8)
-                        # Penultimate step is always the main effort
-                        elif step["stepOrder"] == len(steps)-1:
-                            # Perceived effort main body
-                            cp = get_critical_power()
-                            out_step.power_range = models.PowerRange(
-                                cp * 0.55, cp * 0.9)
-                        else:
-                            # Perceived effort workouts start and end with a standing step
-                            out_step.power_range = models.PowerRange(0, 50)
-                    elif step["intensity"] in recovery_step_types:
-                        out_step.power_range = models.PowerRange(
-                            0, get_critical_power() * 0.8)
-                    else:
-                        if step["durationType"] == "DISTANCE":
-                            out_step.power_range = suggested_power_range_for_distance(
-                                out_step.length)
-                        else:
-                            out_step.power_range = suggested_power_range_for_time(
-                                out_step.length)
-                else:
-                    raise ValueError(
-                        "Failed to parse pace_range for step without an OPEN target.")
-            else:
-                out_step.power_range = convert_pace_range_to_power(
-                    out_step.pace_range)
-            # Add adjustment from config
-            out_step.power_range += config.power_adjust
+        valid_step.append(True)
+        steps_out.append(out_step)
 
-        yield out_step
+    # Remove steps that are part of repeats
+    return list(compress(steps_out, valid_step))
 
 
 def parse_time(pace_string: str) -> models.Quantity:
-    min, sec = map(int, pace_string.split(":"))
-    return min * models.minute + sec * models.second
+    minutes, sec = map(int, pace_string.split(":"))
+    return minutes * models.minute + sec * models.second
 
 
 def parse_pace_range(min_provided: float, max_provided: float) -> models.PaceRange:
-    min = 0.0
+    minutes = 0.0
     if min_provided != 0.0:
-        min = (1 / min_provided)
-    return models.PaceRange(min * models.second / models.meter, (1 / max_provided) * models.second / models.meter)
+        minutes = 1 / min_provided
+    return models.PaceRange(
+        minutes * models.second / models.meter,
+        (1 / max_provided) * models.second / models.meter,
+    )
 
 
 def parse_distance(text: str) -> models.Quantity:
@@ -219,7 +309,7 @@ def parse_duration(step_string: str) -> models.Quantity:
         raise ValueError(f"No duration found in text `{step_string}`")
     parts = match.groupdict()
     duration = models.ureg.Quantity("0 seconds")
-    for (unit, amount) in parts.items():
+    for unit, amount in parts.items():
         if amount:
             duration += int(amount) * models.ureg.parse_units(unit)
     return duration

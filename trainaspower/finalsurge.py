@@ -1,10 +1,11 @@
 import json
-from datetime import timedelta, date
+from datetime import date, timedelta
 from itertools import count
 from typing import Optional, Union
 
 import requests
 from loguru import logger
+from pint import Quantity
 
 from trainaspower import models
 
@@ -45,12 +46,19 @@ def convert_workout(workout: models.Workout) -> dict:
                 "name": workout.name,
                 "sport": "running",
                 "steps": [convert_step(s, counter) for s in workout.steps],
-                "target": "power",
+                "target": "power" if workout.steps[0].power_range else "pace",
             }
         ],
         "target_override": None,
     }
     return result
+
+
+def pace_to_time(pace: Quantity) -> str:
+    pace = pace.to("minute/kilometer").magnitude
+    mins = int(pace)
+    secs = int(60 * (pace % 1))
+    return f"{mins:02d}:{secs:02d}"
 
 
 def convert_step(step: models.Step, id_counter) -> dict:
@@ -71,35 +79,55 @@ def convert_step(step: models.Step, id_counter) -> dict:
             "durationDist": step.length.magnitude,
             "distUnit": f"{step.length.units:~}",
         }
-    s.update({
-        "type": "step",
-        "id": next(id_counter),
-        "name": None,
-        "targetAbsOrPct": "",
-        "data": [],
-        "target": [
-            {
-                "targetType": "power",
-                "zoneBased": False,
-                "targetLow": round(step.power_range.min),
-                "targetHigh": round(step.power_range.max),
-                "targetOption": None,
-                "targetIsTimeBased": False,
-                "zone": 0,
-            },
-            {
-                "targetType": "open",
-                "zoneBased": False,
-                "targetLow": "0",
-                "targetHigh": "0",
-                "targetOption": "",
-                "targetIsTimeBased": False,
-                "zone": 0,
-            },
-        ],
-        "intensity": step.type,
-        "comments": None,
-    })
+
+    target_open = {
+        "targetType": "open",
+        "zoneBased": False,
+        "targetLow": 0,
+        "targetHigh": 0,
+        "targetOption": None,
+        "targetIsTimeBased": False,
+        "zone": 0,
+    }
+
+    if step.power_range:
+        target_base = {
+            "targetType": "power",
+            "zoneBased": False,
+            "targetLow": round(step.power_range.min),
+            "targetHigh": round(step.power_range.max),
+            "targetOption": None,
+            "targetIsTimeBased": False,
+            "zone": 0,
+        }
+    elif step.pace_range:
+        target_base = {
+            "targetType": "pace",
+            "zoneBased": False,
+            "targetLow": pace_to_time(step.pace_range.min),
+            "targetHigh": pace_to_time(step.pace_range.max),
+            "targetOption": "min/km",
+            "targetIsTimeBased": False,
+            "zone": 0,
+        }
+    else:
+        target_base = target_open
+
+    s.update(
+        {
+            "type": "step",
+            "id": next(id_counter),
+            "name": step.description,
+            "targetAbsOrPct": "",
+            "data": [],
+            "target": [
+                target_base,
+                target_open,
+            ],
+            "intensity": step.type,
+            "comments": None,
+        }
+    )
     return s
 
 

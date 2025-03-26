@@ -6,3 +6,5 @@ finalsurge_email: my@email.com
 finalsurge_password: my_password
 power_adjust: [0, 0]
 number_of_workouts: 1
+pace_only: false # Disables the use of Stryd's race calculator and transmits pace directly to FinalSurge
+include_runback_step: false # Adds a runback step without time or power goals after the workout
